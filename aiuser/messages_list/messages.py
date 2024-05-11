@@ -74,7 +74,7 @@ class MessagesList:
         await self.add_system(format_variables(self.ctx, bot_prompt))
         prefill = await self.config.guild(self.guild).prefill()
         if prefill:
-            await self.add_prefill(prefill)
+            await self.add_assistant(prefill)
 
         if await self._check_if_inital_img():
             self.model = await self.config.guild(self.guild).scan_images_model()
@@ -146,10 +146,7 @@ class MessagesList:
             return
 
         for entry in converted:
-            if index is not None:
-                self.messages.insert(index, entry)
-            else:
-                self.messages.append(entry)
+            self.messages.insert(index or 0, entry)
             self.messages_ids.add(message.id)
             for item in entry.content:
                 if isinstance(item, dict):
@@ -173,11 +170,11 @@ class MessagesList:
         self.messages.insert(index or 0, entry)
         await self._add_tokens(content)
 
-    async def add_prefill(self, content: str):
+    async def add_assistant(self, content: str, index: int = None):
         if self.tokens > self.token_limit:
             return
         entry = MessageEntry("assistant", content)
-        self.messages.append(entry)
+        self.messages.insert(index or 0, entry)
         await self._add_tokens(content)
 
     async def add_history(self):
