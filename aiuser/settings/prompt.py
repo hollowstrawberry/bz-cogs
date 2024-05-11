@@ -276,3 +276,33 @@ class PromptSettings(MixinMeta):
             color=await ctx.embed_color())
         embed.add_field(name="Tokens", value=await get_tokens(self.config, ctx, prompt))
         return await ctx.send(embed=embed)
+
+    @aiuser.group(aliases=["jailbreak"])
+    async def prefill(self, ctx: commands.Context):
+        """Set an assistant prefill for the current server."""
+        pass
+
+    @prefill.command(name="set")
+    async def prefill_set(self, ctx: commands.Context, *, text: str = ""):
+        text = text.strip()
+        if not text:
+            await self.config.guild(ctx.guild).prefill.set("")
+            await ctx.send("Prefill cleared for the current server.")
+        else:
+            await self.config.guild(ctx.guild).prefill.set(text)
+            embed = discord.Embed(
+                title=f"The prefill for this server is now:",
+                description=truncate_prompt(text),
+                color=await ctx.embed_color())
+            embed.add_field(name="Tokens", value=await get_tokens(self.config, ctx, text))
+            await ctx.send(embed=embed)
+
+    @prefill.command(name="show")
+    async def prefill_show(self, ctx: commands.Context):
+        prefill = await self.config.guild(ctx.guild).prefill()
+        embed = discord.Embed(
+            title=f"The prefill for this server is:",
+            description=truncate_prompt(prefill),
+            color=await ctx.embed_color())
+        embed.add_field(name="Tokens", value=await get_tokens(self.config, ctx, prefill))
+        await ctx.send(embed=embed)
