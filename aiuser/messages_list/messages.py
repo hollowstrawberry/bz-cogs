@@ -249,7 +249,9 @@ class MessagesList:
         await self.init_message.channel.send(embed=embed, view=view)
 
     def get_json(self):
-        return [asdict(message) for message in self.messages]
+        jsn = [asdict(message) for message in self.messages]
+        logger.info(jsn)
+        return jsn
 
     async def _add_tokens(self, content):
         if not self._encoding:
