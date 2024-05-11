@@ -246,7 +246,7 @@ class MessagesList:
             entry = MessageEntry("assistant", self.prefill)
             messages.append(entry)
         jsn = [asdict(message) for message in messages]
-        logger.info(jsn)
+        # logger.debug(jsn)
         return jsn
 
     async def _add_tokens(self, content):
