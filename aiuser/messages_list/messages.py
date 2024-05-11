@@ -51,6 +51,7 @@ class MessagesList:
         self.tokens = 0
         self.model = None
         self.can_reply = True
+        self.prefill = ""
 
     def __len__(self):
         return len(self.messages)
@@ -72,9 +73,7 @@ class MessagesList:
         bot_prompt = prompt or await self._pick_prompt()
 
         await self.add_system(format_variables(self.ctx, bot_prompt))
-        prefill = await self.config.guild(self.guild).prefill()
-        if prefill:
-            await self.add_assistant(prefill)
+        self.prefill = await self.config.guild(self.guild).prefill()
 
         if await self._check_if_inital_img():
             self.model = await self.config.guild(self.guild).scan_images_model()
@@ -170,13 +169,6 @@ class MessagesList:
         self.messages.insert(index or 0, entry)
         await self._add_tokens(content)
 
-    async def add_assistant(self, content: str, index: int = None):
-        if self.tokens > self.token_limit:
-            return
-        entry = MessageEntry("assistant", content)
-        self.messages.insert(index or 0, entry)
-        await self._add_tokens(content)
-
     async def add_history(self):
         limit = await self.config.guild(self.guild).messages_backread()
         max_seconds_gap = await self.config.guild(self.guild).messages_backread_seconds()
@@ -249,7 +241,11 @@ class MessagesList:
         await self.init_message.channel.send(embed=embed, view=view)
 
     def get_json(self):
-        jsn = [asdict(message) for message in self.messages]
+        messages = self.messages[:]
+        if self.prefill:
+            entry = MessageEntry("assistant", self.prefill)
+            messages.append(entry)
+        jsn = [asdict(message) for message in messages]
         logger.info(jsn)
         return jsn
 
