@@ -227,12 +227,12 @@ class MessagesList:
         return users
 
     async def _process_past_messages(self, past_messages, max_seconds_gap):
-        for i in range(len(past_messages) - 1):
+        for i in range(len(past_messages)):
             if self.tokens > self.token_limit:
                 return logger.debug(f"{self.tokens} tokens used - nearing limit, stopping context creation for message {self.init_message.id}")
             if (past_messages[i].author.id == self.bot.user.id) and (past_messages[i].embeds and past_messages[i].embeds[0].title == OPTIN_EMBED_TITLE):
                 continue
-            if await self._is_valid_time_gap(past_messages[i], past_messages[i + 1], max_seconds_gap):
+            if i + 1 < len(past_messages) and await self._is_valid_time_gap(past_messages[i], past_messages[i + 1], max_seconds_gap):
                 await self.add_msg(past_messages[i])
             else:
                 await self.add_msg(past_messages[i])
