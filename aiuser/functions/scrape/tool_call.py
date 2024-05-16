@@ -1,6 +1,7 @@
 
 
 import logging
+import aiohttp
 
 from aiuser.functions.scrape.scrape import scrape_page
 from aiuser.functions.tool_call import ToolCall
@@ -26,4 +27,8 @@ class ScrapeToolCall(ToolCall):
 
     async def _handle(self, arguments):
         logger.info(f'Scraping {arguments["url"]} in {self.ctx.guild}')
-        return await scrape_page(arguments["url"])
+        try:
+            return await scrape_page(arguments["url"])
+        except aiohttp.ClientResponseError:
+            logger.info(f"Failed to scrape {arguments['url']}")
+            return "[Failed to open URL]"

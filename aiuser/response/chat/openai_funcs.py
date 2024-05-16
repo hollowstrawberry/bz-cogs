@@ -40,8 +40,8 @@ class OpenAI_Functions_API_Generator(OpenAI_API_Generator):
                 )
             )
 
-            tool_calls = response.choices[0].message.tool_calls
-            self.completion = response.choices[0].message.content
+            tool_calls = response.choices[0].message.tool_calls if response.choices else None
+            self.completion = response.choices[0].message.content if response.choices else None
 
             if not tool_calls or self.completion:
                 break
