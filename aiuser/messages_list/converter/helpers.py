@@ -9,7 +9,7 @@ logger = logging.getLogger("red.bz_cogs.aiuser")
 
 def format_text_content(message: Message):
     if message.type == MessageType.new_member:
-        return f'The following user has joined the server: {message.mentions[0].mention}'
+        return f'The following user has joined the server: {message.author.mention}'
     if message.type != MessageType.default:
         return message.system_content
     if not message.content or message.content == "" or message.content.isspace():
