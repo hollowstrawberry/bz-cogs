@@ -196,9 +196,7 @@ class AImage(Settings,
         await interaction.response.defer(thinking=True)
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        if not await self._can_run_command(ctx, "aimage"):
-            return await interaction.followup.send("You do not have permission to do this.", ephemeral=True)
-
+        
         if not self.autocomplete_cache[ctx.guild.id]:
             asyncio.create_task(self._update_autocomplete_cache(interaction))
 
@@ -242,9 +240,7 @@ class AImage(Settings,
         await interaction.response.defer(thinking=True)
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        if not await self._can_run_command(ctx, "imagine"):
-            return await interaction.followup.send("You do not have permission to do this.", ephemeral=True)
-
+        
         if not image.content_type.startswith("image/"):
             return await interaction.followup.send("The file you uploaded is not a valid image.", ephemeral=True)
 
