@@ -164,11 +164,11 @@ class AImage(Settings,
         "style": style_autocomplete,
     }
 
-    @commands.command()
+    @commands.command(name="aimage")
     @commands.cooldown(1, 10, commands.BucketType.default)
     @checks.bot_has_permissions(attach_files=True)
     @checks.bot_in_a_guild()
-    async def aimage(self, ctx: commands.Context, *, prompt: str):
+    async def aimage_cmd(self, ctx: commands.Context, *, prompt: str):
         """
         Generate an image
 
