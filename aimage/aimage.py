@@ -168,7 +168,7 @@ class AImage(Settings,
     @commands.cooldown(1, 10, commands.BucketType.default)
     @checks.bot_has_permissions(attach_files=True)
     @checks.bot_in_a_guild()
-    async def imagine(self, ctx: commands.Context, *, prompt: str):
+    async def aimage(self, ctx: commands.Context, *, prompt: str):
         """
         Generate an image
 
@@ -180,7 +180,7 @@ class AImage(Settings,
 
         await self.generate_image(ctx, prompt=prompt)
 
-    @app_commands.command(name="imagine")
+    @app_commands.command(name="aimage")
     @app_commands.describe(width="Default image width is 512, or 1024 for SDXL.",
                            height="Default image height is 512, or 1024 for SDXL.",
                            **_parameter_descriptions)
@@ -188,7 +188,7 @@ class AImage(Settings,
     @app_commands.checks.cooldown(1, 10, key=None)
     @app_commands.checks.bot_has_permissions(attach_files=True)
     @app_commands.guild_only()
-    async def imagine_app(
+    async def aimage_app(
         self,
         interaction: discord.Interaction,
         prompt: str,
@@ -224,7 +224,7 @@ class AImage(Settings,
                                   seed=seed, subseed=variation_seed, subseed_strength=variation,
                                   checkpoint=checkpoint, vae=vae, lora=lora)
 
-    @app_commands.command(name="reimagine")
+    @app_commands.command(name="reimage")
     @app_commands.describe(image="The image to reimagine with AI.",
                            denoising="How much the image should change. Try around 0.6",
                            scale="Resizes the image up or down, 0.5 to 2.0.",
@@ -233,7 +233,7 @@ class AImage(Settings,
     @app_commands.checks.cooldown(1, 10, key=None)
     @app_commands.checks.bot_has_permissions(attach_files=True)
     @app_commands.guild_only()
-    async def reimagine_app(
+    async def reimage_app(
             self,
             interaction: discord.Interaction,
             image: discord.Attachment,
