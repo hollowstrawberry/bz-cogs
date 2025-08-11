@@ -155,13 +155,13 @@ class AImage(Settings,
         "style": style_autocomplete,
     }
 
-    @ commands.command()
+    @ commands.command(name="sdimagine")
     @ commands.cooldown(1, 10, commands.BucketType.default)
     @ checks.bot_has_permissions(attach_files=True)
     @ checks.bot_in_a_guild()
     async def imagine(self, ctx: commands.Context, *, prompt: str):
         """
-        Generate an image
+        Generate an image with Stable Diffusion
 
         **Arguments**
             - `prompt` a prompt to generate an image from
@@ -172,7 +172,7 @@ class AImage(Settings,
         params = ImageGenParams(prompt=prompt)
         await self.generate_image(ctx, params=params)
 
-    @ app_commands.command(name="imagine")
+    @ app_commands.command(name="sdimagine")
     @ app_commands.describe(width="Default image width is 512, or 1024 for SDXL.",
                             height="Default image height is 512, or 1024 for SDXL.",
                             **_parameter_descriptions)
@@ -199,12 +199,12 @@ class AImage(Settings,
         lora: str = "",
     ):
         """
-        Generate an image using AI.
+        Generate an image using Stable
         """
         await interaction.response.defer(thinking=True)
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        if not await self._can_run_command(ctx, "imagine"):
+        if not await self._can_run_command(ctx, "sdimagine"):
             return await interaction.followup.send("You do not have permission to do this.", ephemeral=True)
 
         params = ImageGenParams(
@@ -260,7 +260,7 @@ class AImage(Settings,
         await interaction.response.defer(thinking=True)
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        if not await self._can_run_command(ctx, "imagine"):
+        if not await self._can_run_command(ctx, "sdimagine"):
             return await interaction.followup.send("You do not have permission to do this.", ephemeral=True)
 
         if not image.content_type.startswith("image/"):

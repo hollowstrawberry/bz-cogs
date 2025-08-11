@@ -6,13 +6,13 @@ For A1111 API setup, see [here](https://github.com/AUTOMATIC1111/stable-diffusio
 
 Supports txt2img and img2img functionality.
 
-**Highly recommended** to enable slash (`/imagine`) command using:
+**Highly recommended** to enable slash (`/sdimagine`) command using:
 ```
 [p]slash enablecog aimage
 [p]slash sync
 ```
 
-The non-slash command is `[p]imagine`, and is limited in functionality.
+The non-slash command is `[p]sdimagine`, and is limited in functionality.
 
 # Settings ⚙️
 
