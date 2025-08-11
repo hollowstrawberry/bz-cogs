@@ -38,7 +38,7 @@ class ImageHandler(MixinMeta):
         prompt = params.prompt if params else payload.get("prompt", "")
 
         if await self._contains_blacklisted_word(guild, prompt):
-            return await send_response(context, content=":warning: Prompt contains blacklisted words!")
+            return await send_response(context, content=":warning: Blocked NSFW prompt.")
 
         try:
             self.generating[user.id] = True
