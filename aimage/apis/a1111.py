@@ -11,7 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_random
 from aimage.abc import MixinMeta
 from aimage.apis.base import BaseAPI
 from aimage.apis.response import ImageResponse
-from aimage.common.constants import ADETAILER_ARGS, TILED_VAE_ARGS
+from aimage.common.constants import ADETAILER_ARGS, TILED_VAE_ARGS, NEVER_OOM_ARGS
 from aimage.common.helpers import get_auth
 from aimage.common.params import ImageGenParams
 
@@ -134,6 +134,8 @@ class A1111(BaseAPI):
 
         if await self.config.guild(self.guild).tiledvae():
             payload["alwayson_scripts"].update(TILED_VAE_ARGS)
+
+        payload["alwayson_scripts"].update(NEVER_OOM_ARGS)
 
         if not (await self.config.guild(self.guild).nsfw()):
             payload["script_name"] = "CensorScript"

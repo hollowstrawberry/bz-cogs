@@ -81,6 +81,17 @@ TILED_VAE_ARGS = {
     }
 }
 
+NEVER_OOM_ARGS = {
+    "Never OOM Integrated": {
+        "args": [
+            False,
+            True,
+            960,
+            64
+        ]
+    }
+}
+
 PARAM_REGEX = re.compile(r' ?([^:]+): (.+?),(?=(?:[^"]*"[^"]*")*[^"]*$)')
 
 PARAM_GROUP_REGEX = re.compile(r', [^:]+: {.+?(?=(?:[^"]*"[^"]*")*[^"]*$)}')
