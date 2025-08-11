@@ -42,15 +42,9 @@ class ImageHandler(MixinMeta):
 
         try:
             self.generating[user.id] = True
-            for _ in range(10):
-                try:
-                    api = await self.get_api_instance(context)
-                    generate_func = getattr(api, generate_method)
-                    response: ImageResponse = await generate_func(params, payload)
-                except aiohttp.ClientOSError:
-                    await asyncio.sleep(5)
-                else:
-                    break
+            api = await self.get_api_instance(context)
+            generate_func = getattr(api, generate_method)
+            response: ImageResponse = await generate_func(params, payload)
         except ValueError as error:
             return await send_response(context, content=f":warning: Invalid parameter: {error}", ephemeral=True)
         except aiohttp.ClientResponseError as error:
