@@ -65,7 +65,8 @@ class ImageHandler(MixinMeta):
         #    return await send_response(context, content=f"🔞 {user.mention} generated a possible NSFW image with prompt: `{prompt}`", allowed_mentions=discord.AllowedMentions.none())
 
         file = discord.File(io.BytesIO(response.data), filename=f"image.{response.extension}")
-        view = ImageActions(self, response.info_string, response.payload, user, context.channel)
+        maxsize = await self.config.guild(guild).max_img2img()
+        view = ImageActions(self, response.info_string, response.payload, user, context.channel, maxsize)
         msg = await send_response(context, file=file, view=view)
         asyncio.create_task(delete_button_after(msg))
 

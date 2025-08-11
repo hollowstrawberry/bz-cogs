@@ -16,7 +16,7 @@ from aimage.views.params import ParamsView
 
 
 class ImageActions(discord.ui.View):
-    def __init__(self, cog: MixinMeta, image_info: str, payload: dict, author: discord.Member, channel: discord.TextChannel):
+    def __init__(self, cog: MixinMeta, image_info: str, payload: dict, author: discord.Member, channel: discord.TextChannel, maxsize: int):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.info_string = image_info
         self.payload = payload
@@ -25,6 +25,7 @@ class ImageActions(discord.ui.View):
         self.cache = cog.autocomplete_cache
         self.og_user = author
         self.channel = channel
+        self.maxsize = maxsize
         self.generate_image = cog.generate_image
         self.generate_img2img = cog.generate_img2img
 
@@ -40,7 +41,8 @@ class ImageActions(discord.ui.View):
         self.add_item(self.button_caption)
         if not payload.get("enable_hr", False):
             self.add_item(self.button_regenerate)
-            if not payload.get("init_images", []) and "AI Horde" not in self.info_string:
+            if not payload.get("init_images", []) and "AI Horde" not in self.info_string \
+                    and self.payload["width"]*self.payload["height"] < maxsize*maxsize:
                 self.add_item(self.button_upscale)
         self.add_item(self.button_delete)
 
@@ -76,9 +78,8 @@ class ImageActions(discord.ui.View):
                 pass
 
     async def upscale_image(self, interaction: discord.Interaction):
-        maxsize = await self.config.guild(interaction.guild).max_img2img()
         from aimage.views.hi_res import HiresView
-        view = HiresView(self, interaction, maxsize)
+        view = HiresView(self, interaction, self.maxsize)
         await interaction.response.send_message(view=view, ephemeral=True)
 
     async def delete_image(self, interaction: discord.Interaction):
