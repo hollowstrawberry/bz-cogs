@@ -307,6 +307,22 @@ class Settings(MixinMeta):
             return await ctx.send("No words added")
         await self.config.guild(ctx.guild).words_blacklist.set(current_words)
         return await ctx.send(f"Added words `{', '.join(added)}` to the blacklist")
+    
+    @blacklist.command(name="regex")
+    @commands.is_owner()
+    async def blacklist_regex(self, ctx: commands.Context, *, regex: Optional[str]):
+        """
+        Sets a regex for the blacklist
+        """
+        if not regex or not regex.strip():
+            regex = await self.config.guild(ctx.guild).blacklist_regex()
+            if not regex:
+                await ctx.send("No regex set")
+            else:
+                await ctx.send(f"Current regex\n```re\n{regex}```")
+        else:
+            await self.config.guild(ctx.guild).blacklist_regex.set(regex.strip())
+            await ctx.send(f"Set regex\n```re\n{regex.strip()}```")
 
     @blacklist.command(name="remove")
     async def blacklist_remove(self, ctx: commands.Context, *words: str):

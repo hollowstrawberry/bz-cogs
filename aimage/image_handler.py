@@ -1,5 +1,6 @@
 import asyncio
 import io
+import re
 import logging
 import random
 from typing import Union
@@ -88,5 +89,9 @@ class ImageHandler(MixinMeta):
         await self._execute_image_generation(context, payload, params, 'generate_img2img')
 
     async def _contains_blacklisted_word(self, guild: discord.Guild, prompt: str):
-        blacklist = await self.config.guild(guild).words_blacklist()
-        return any(word in prompt.lower() for word in blacklist)
+        blacklist_regex = await self.config.guild(guild).blacklist_regex()
+        if blacklist_regex:
+            return re.search(blacklist_regex, prompt, re.IGNORECASE)
+        else:
+            blacklist = await self.config.guild(guild).words_blacklist()
+            return any(word in prompt.lower() for word in blacklist)
