@@ -141,6 +141,22 @@ class Settings(MixinMeta):
         await self.config.guild(ctx.guild).sampler.set(sampler)
         await ctx.tick(message="✅ Default sampler updated.")
 
+    @aimage.command(name="scheduler")
+    async def scheduler(self, ctx: commands.Context, *, scheduler: str):
+        """
+        Set the default scheduler
+        """
+        await ctx.message.add_reaction("🔄")
+        await self._update_autocomplete_cache(ctx)
+        schedulers = self.autocomplete_cache[ctx.guild.id].get("schedulers") or []
+        await ctx.message.remove_reaction("🔄", ctx.me)
+
+        if scheduler not in schedulers:
+            return await ctx.send(f":warning: scheduler must be one of: `{', '.join(schedulers)}`")
+
+        await self.config.guild(ctx.guild).scheduler.set(scheduler)
+        await ctx.tick(message="✅ Default scheduler updated.")
+
     @aimage.command(name="width")
     async def width(self, ctx: commands.Context, width: int):
         """

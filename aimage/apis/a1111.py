@@ -106,7 +106,7 @@ class A1111(BaseAPI):
             "subseed": params.subseed,
             "subseed_strength": params.subseed_strength,
             "sampler_name": params.sampler or await self.config.guild(self.guild).sampler(),
-            "scheduler": params.scheduler or "Automatic",
+            "scheduler": params.scheduler or await self.config.guild(self.guild).scheduler(),
             "override_settings": {
                 "sd_model_checkpoint": params.checkpoint or await self.config.guild(self.guild).checkpoint(),
                 "sd_vae": params.vae or await self.config.guild(self.guild).vae()
