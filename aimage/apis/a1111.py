@@ -30,7 +30,8 @@ cache_mapping = {
     "sd-models": "checkpoints",
     "sd-modules": "vaes",
     "samplers": "samplers",
-    "prompt-styles": "styles"
+    "prompt-styles": "styles",
+    "schedulers": "schedulers",
 }
 
 A1111_SAMPLERS = [
