@@ -139,7 +139,7 @@ class A1111(BaseAPI):
 
         if not (await self.config.guild(self.guild).nsfw()):
             tuning = await self.config.guild(self.guild).nsfw_tuning()
-            payload["script_name"] = "sd-webui-nsfw-checker"
+            payload["script_name"] = "censorscript"
             payload["script_args"] = [True, True, tuning]
 
         return payload
