@@ -15,8 +15,6 @@ DEFAULT_BADWORDS_BLACKLIST = ["blood", "bloodbath", "crucifixion", "bloody", "fl
 VIEW_TIMEOUT = 5 * 60
 
 AUTO_COMPLETE_UPSCALERS = [
-    "Latent",
-    "Latent (nearest-exact)",
 ]
 
 ADETAILER_ARGS = {
