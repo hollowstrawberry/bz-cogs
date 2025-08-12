@@ -89,7 +89,7 @@ class ScaleSelect(discord.ui.Select):
 class DenoisingSelect(discord.ui.Select):
     def __init__(self, parent: HiresView):
         self.parent = parent
-        options = [discord.SelectOption(label=f"Denoising: {num / 100:.2f}", value=str(num / 100), default=num == 55)
+        options = [discord.SelectOption(label=f"Denoising: {num / 100:.2f}", value=str(num / 100), default=num == 40)
                    for num in range(0, 100, 5)]
         super().__init__(options=options)
 
