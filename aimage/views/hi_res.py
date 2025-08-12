@@ -14,7 +14,7 @@ class HiresView(discord.ui.View):
         self.src_button = parent.button_upscale
         self.payload = copy(parent.payload)
         self.generate_image = parent.generate_image
-        upscalers = AUTO_COMPLETE_UPSCALERS + parent.cache[interaction.guild.id].get("upscalers", [])
+        upscalers = sorted(parent.cache[interaction.guild.id].get("upscalers", []))
         maxscale = ((maxsize*maxsize) / (self.payload["width"]*self.payload["height"]))**0.5
         scales = [num/100 for num in range(100, min(max(int(maxscale * 100) + 1, 101), 201), 25)]
         self.upscaler = upscalers[0]
