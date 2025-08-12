@@ -99,13 +99,20 @@ class Settings(MixinMeta):
         await self.config.guild(ctx.guild).nsfw.set(not nsfw)
         await ctx.send(f"NSFW filtering is now {'`disabled`' if not nsfw else '`enabled`'}")
 
-    @aimage.command(name="nsfw_tuning")
-    async def nsfw_tuning(self, ctx: commands.Context, val: float):
+    @aimage.command(name="nsfw_sensitivity")
+    async def nsfw_sensitivity(self, ctx: commands.Context, value: Optional[float]):
         """
-        Adjusts the NSFW filter
+        Views or sets the sensitivity for the nsfw filter (A1111 only)
+        Valid values are between -0.2 and 0.2
         """
-        await self.config.guild(ctx.guild).nsfw_tuning.set(val)
-        await ctx.send(f"NSFW tuned at {val}")
+
+        if value is None:
+            nsfw_tuning = await self.config.guild(ctx.guild).nsfw_tuning()
+            await ctx.send(f"The sensitivity is currently set to `{nsfw_tuning:.3f}`")
+        elif value < -0.2 or value > 0.2:
+            await self.config.guild(ctx.guild).nsfw_tuning.set(value)
+            await ctx.send(f"The sensitivity is currently set to `{value:.3f}`"
+                           "\nNote that you need [the updated CensorScript.py](<https://github.com/hollowstrawberry/sd-webui-nsfw-checker>) in your A1111 to use this.")
 
 
     @aimage.command(name="negative_prompt")
