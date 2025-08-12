@@ -110,6 +110,8 @@ class Settings(MixinMeta):
             nsfw_tuning = await self.config.guild(ctx.guild).nsfw_tuning()
             await ctx.send(f"The sensitivity is currently set to `{nsfw_tuning:.3f}`")
         elif value < -0.2 or value > 0.2:
+            await ctx.send(f"Valid values are between -0.2 and 0.2")
+        else:
             await self.config.guild(ctx.guild).nsfw_tuning.set(value)
             await ctx.send(f"The sensitivity is currently set to `{value:.3f}`"
                            "\nNote that you need [the updated CensorScript.py](<https://github.com/hollowstrawberry/sd-webui-nsfw-checker>) in your A1111 to use this.")
