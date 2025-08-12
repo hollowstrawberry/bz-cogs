@@ -152,7 +152,7 @@ class AImage(Settings,
     }
 
     @ commands.command(name="txt2img")
-    @ commands.cooldown(1, 60, commands.BucketType.user)
+    @ app_commands.checks.cooldown(1, 10, key=None)
     @ checks.bot_has_permissions(attach_files=True)
     @ checks.bot_in_a_guild()
     async def imagine(self, ctx: commands.Context, *, prompt: str):
@@ -228,7 +228,7 @@ class AImage(Settings,
                             scale="Resizes the image up or down, 0.5 to 2.0.",
                             **_parameter_descriptions)
     @ app_commands.autocomplete(**_parameter_autocompletes)
-    @ commands.cooldown(1, 60, commands.BucketType.user)
+    @ app_commands.checks.cooldown(1, 10, key=None)
     @ app_commands.checks.bot_has_permissions(attach_files=True)
     @ app_commands.guild_only()
     async def reimagine_app(
