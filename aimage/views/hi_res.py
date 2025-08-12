@@ -1,10 +1,10 @@
 from copy import copy
 
 import discord
+import logging
 
 from aimage.common.constants import ADETAILER_ARGS, AUTO_COMPLETE_UPSCALERS
 from aimage.views.image_actions import ImageActions
-
 
 class HiresView(discord.ui.View):
     def __init__(self, parent: ImageActions, interaction: discord.Interaction, maxsize: int):
@@ -17,6 +17,7 @@ class HiresView(discord.ui.View):
         upscalers = sorted(parent.cache[interaction.guild.id].get("upscalers", []))
         maxscale = ((maxsize*maxsize) / (self.payload["width"]*self.payload["height"]))**0.5
         scales = [num/100 for num in range(100, min(max(int(maxscale * 100) + 1, 101), 201), 25)]
+        logging.info(upscalers)
         self.upscaler = upscalers[0]
         self.scale = scales[-1]
         self.denoising = 0.5
