@@ -42,7 +42,7 @@ class ImageActions(discord.ui.View):
         if not payload.get("enable_hr", False):
             self.add_item(self.button_regenerate)
             if not payload.get("init_images", []) and "AI Horde" not in self.info_string \
-                    and self.payload["width"]*self.payload["height"] < maxsize*maxsize:
+                    and self.payload["width"]*self.payload["height"]*1.1 < maxsize*maxsize:
                 self.add_item(self.button_upscale)
         self.add_item(self.button_delete)
 

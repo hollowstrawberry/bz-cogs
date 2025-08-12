@@ -93,11 +93,20 @@ class Settings(MixinMeta):
             await self._update_autocomplete_cache(ctx)
             data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
             await ctx.message.remove_reaction("🔄", ctx.me)
-            if "censorscript" not in data:
-                return await ctx.send(":warning: Compatible censor script is not installed in A1111, install [CensorScript.py](<https://github.com/IOMisaka/sdapi-scripts>).")
+            if "sd-webui-nsfw-checker" not in data:
+                return await ctx.send(":warning: sd-webui-nsfw-checker is not installed in webui, install <https://github.com/hollowstrawberry/sd-webui-nsfw-checker>")
 
         await self.config.guild(ctx.guild).nsfw.set(not nsfw)
         await ctx.send(f"NSFW filtering is now {'`disabled`' if not nsfw else '`enabled`'}")
+
+    @aimage.command(name="nsfw_tuning")
+    async def nsfw_tuning(self, ctx: commands.Context, val: float):
+        """
+        Adjusts the NSFW filter
+        """
+        await self.config.guild(ctx.guild).nsfw_tuning.set(val)
+        await ctx.send(f"NSFW tuned at {val}")
+
 
     @aimage.command(name="negative_prompt")
     async def negative_prompt(self, ctx: commands.Context, *, negative_prompt: Optional[str]):

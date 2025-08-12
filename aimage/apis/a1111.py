@@ -138,8 +138,9 @@ class A1111(BaseAPI):
         #payload["alwayson_scripts"].update(NEVER_OOM_ARGS)
 
         if not (await self.config.guild(self.guild).nsfw()):
-            payload["script_name"] = "CensorScript"
-            payload["script_args"] = [True, True]
+            tuning = await self.config.guild(self.guild).nsfw_tuning()
+            payload["script_name"] = "sd-webui-nsfw-checker"
+            payload["script_args"] = [True, True, tuning]
 
         return payload
 
