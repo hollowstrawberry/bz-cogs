@@ -99,7 +99,7 @@ class A1111(BaseAPI):
     async def _generate_payload(self, params: ImageGenParams, init_image: bytes = None) -> dict:
         payload = {
             "prompt": f"{params.prompt} {params.lora}",
-            "negative_prompt": params.negative_prompt or await self.config.guild(self.guild).negative_prompt(),
+            "negative_prompt": f"{await self.config.guild(self.guild).negative_prompt()}, {params.negative_prompt}",
             "styles": params.style.split(", ") if params.style else [],
             "cfg_scale": params.cfg or await self.config.guild(self.guild).cfg(),
             "steps": params.steps or await self.config.guild(self.guild).sampling_steps(),
