@@ -3,6 +3,7 @@ import io
 import logging
 from collections import defaultdict
 from copy import copy
+import math
 import re
 from typing import List, Union
 
@@ -133,7 +134,7 @@ class AImage(Settings,
         sorted_options = sorted(ratios, key=lambda x: x[1], reverse=True)
 
         for item, ratio in sorted_options:
-            if strict and ratio < 50:
+            if strict and ratio < 75:
                 continue
             results.append(item)
 
