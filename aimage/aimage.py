@@ -93,9 +93,12 @@ class AImage(Settings,
             return []
 
         weight = "1"
-        if current and (m := re.search(r"([^:]+):([+-]?\d*\.?\d+)$", current)):
-            current = m.group(1)
-            weight = m.group(2)
+        if current:
+            if m := re.search(r"^(<[^>]+>\s*)+([^<>]+)$", current): # multiple loras
+                current = m.group(2)
+            if m := re.search(r"^([^:]+):([+-]?\d*\.?\d+)$", current): # lora weight
+                current = m.group(1)
+                weight = m.group(2)
 
         choices = self.filter_list(choices, current, True)
         choices = [f"<lora:{choice}:{weight}>" for choice in choices]
