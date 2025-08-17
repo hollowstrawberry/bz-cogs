@@ -93,15 +93,17 @@ class AImage(Settings,
             return []
 
         weight = "1"
+        previous = ""
         if current:
             if m := re.search(r"^(<[^>]+>\s*)+([^<>]+)$", current): # multiple loras
                 current = m.group(2)
+                previous = m.group(1) + " "
             if m := re.search(r"^([^:]+):([+-]?\d*\.?\d+)$", current): # lora weight
                 current = m.group(1)
                 weight = m.group(2)
 
         choices = self.filter_list(choices, current, True)
-        choices = [f"<lora:{choice}:{weight}>" for choice in choices]
+        choices = [f"{previous}<lora:{choice}:{weight}>" for choice in choices]
         return [app_commands.Choice(name=choice, value=choice) for choice in choices][:25]
 
     async def style_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
