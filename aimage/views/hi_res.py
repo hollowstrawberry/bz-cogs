@@ -33,7 +33,7 @@ class HiresView(discord.ui.View):
         self.payload["hr_upscaler"] = self.upscaler
         self.payload["hr_scale"] = self.scale
         self.payload["denoising_strength"] = self.denoising
-        self.payload["hr_second_pass_steps"] = self.payload["steps"] // 2
+        self.payload["hr_second_pass_steps"] = int(self.payload["steps"]) // 2
         self.payload["hr_prompt"] = self.payload["prompt"]
         self.payload["hr_negative_prompt"] = self.payload["negative_prompt"]
         self.payload["hr_resize_x"] = 0
