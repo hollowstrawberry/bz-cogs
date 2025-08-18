@@ -97,9 +97,15 @@ class A1111(BaseAPI):
         return await self._post_image_gen(payload, ImageGenerationType.IMG2IMG)
 
     async def _generate_payload(self, params: ImageGenParams, init_image: bytes = None) -> dict:
+        if params.negative_prompt is None:
+            params.negative_prompt = ""
         stock_negative_prompt = await self.config.guild(self.guild).negative_prompt()
         if stock_negative_prompt not in params.negative_prompt:
-            params.negative_prompt = f"{stock_negative_prompt}, {params.negative_prompt}"
+            if params.negative_prompt:
+                params.negative_prompt = f"{stock_negative_prompt}, {params.negative_prompt}"
+            else:
+                params.negative_prompt = stock_negative_prompt
+
         payload = {
             "prompt": f"{params.prompt} {params.lora}",
             "negative_prompt": params.negative_prompt,
