@@ -97,9 +97,12 @@ class A1111(BaseAPI):
         return await self._post_image_gen(payload, ImageGenerationType.IMG2IMG)
 
     async def _generate_payload(self, params: ImageGenParams, init_image: bytes = None) -> dict:
+        stock_negative_prompt = await self.config.guild(self.guild).negative_prompt()
+        if stock_negative_prompt not in params.negative_prompt:
+            params.negative_prompt = f"{stock_negative_prompt}, {params.negative_prompt}"
         payload = {
             "prompt": f"{params.prompt} {params.lora}",
-            "negative_prompt": f"{await self.config.guild(self.guild).negative_prompt()}, {params.negative_prompt}",
+            "negative_prompt": params.negative_prompt,
             "styles": params.style.split(", ") if params.style else [],
             "cfg_scale": params.cfg or await self.config.guild(self.guild).cfg(),
             "steps": params.steps or await self.config.guild(self.guild).sampling_steps(),
