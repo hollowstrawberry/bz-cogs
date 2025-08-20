@@ -33,7 +33,7 @@ class ImageActions(discord.ui.View):
         self.button_caption.callback = self.get_caption
         self.button_regenerate = discord.ui.Button(emoji='🔄')
         self.button_regenerate.callback = self.regenerate_image
-        self.button_variation = discord.ui.Button(emoji='🤏')
+        self.button_variation = discord.ui.Button(emoji='🤏🏻')
         self.button_variation.callback = self.variation_image
         self.button_upscale = discord.ui.Button(emoji='⬆')
         self.button_upscale.callback = self.upscale_image

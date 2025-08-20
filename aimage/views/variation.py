@@ -15,9 +15,11 @@ class VariationView(discord.ui.View):
         self.strength = 0.05
         self.add_item(VariationStrengthSelect(self))
 
-    @discord.ui.button(emoji='🤏', label='Make Variation', style=discord.ButtonStyle.blurple, row=2)
+    @discord.ui.button(emoji='🤏🏻', label='Make Variation', style=discord.ButtonStyle.blurple, row=2)
     async def makevariation(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.defer(thinking=True)
+        params = self.src_view.get_params_dict()
+        self.payload["seed"] = int(params["Seed"])
         self.payload["subseed"] = -1
         self.payload["subseed_strength"] = self.strength
 
