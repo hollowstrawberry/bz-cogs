@@ -257,7 +257,7 @@ class AImage(Settings,
             cfg: app_commands.Range[float, 2, 8] = None,
             seed: app_commands.Range[int, -1, None] = -1,
             subseed: app_commands.Range[int, -1, None] = -1,
-            variation: app_commands.Range[float, 0, 0.5] = 0,
+            variation: app_commands.Range[float, 0.0, 0.5] = 0,
             vae: str = None,
     ):
         """
