@@ -61,13 +61,9 @@ class ImageActions(discord.ui.View):
 
     async def regenerate_image(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
-        params = self.get_params_dict()
-        if params and float(params.get("Variation seed strength", 0)) > 0:
-            self.payload["seed"] = int(params["Seed"])
-            self.payload["subseed"] = -1
-            self.payload["subseed_strength"] = 0
-        else:
-            self.payload["seed"] = -1
+        self.payload["seed"] = -1
+        self.payload["subseed"] = -1
+        self.payload["subseed_strength"] = 0
         self.button_regenerate.disabled = True
         await interaction.message.edit(view=self)
         if self.payload.get("init_images", []):
