@@ -41,6 +41,7 @@ class HiresView(discord.ui.View):
         params = self.src_view.get_params_dict()
         self.payload["seed"] = int(params["Seed"])
         self.payload["subseed"] = int(params.get("Variation seed", -1))
+        self.payload["subseed_strength"] = int(params.get("Variation seed strength", 0))
         if self.adetailer:
             self.payload["alwayson_scripts"].update(ADETAILER_ARGS)
         elif "ADetailer" in self.payload["alwayson_scripts"]:

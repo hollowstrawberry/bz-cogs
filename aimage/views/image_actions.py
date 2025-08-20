@@ -33,6 +33,8 @@ class ImageActions(discord.ui.View):
         self.button_caption.callback = self.get_caption
         self.button_regenerate = discord.ui.Button(emoji='🔄')
         self.button_regenerate.callback = self.regenerate_image
+        self.button_variation = discord.ui.Button(emoji='🤏')
+        self.button_variation.callback = self.variation_image
         self.button_upscale = discord.ui.Button(emoji='⬆')
         self.button_upscale.callback = self.upscale_image
         self.button_delete = discord.ui.Button(emoji='🗑️')
@@ -41,6 +43,7 @@ class ImageActions(discord.ui.View):
         self.add_item(self.button_caption)
         if not payload.get("enable_hr", False):
             self.add_item(self.button_regenerate)
+            self.add_item(self.button_variation)
             if not payload.get("init_images", []) and "AI Horde" not in self.info_string \
                     and self.payload["width"]*self.payload["height"]*1.1 < maxsize*maxsize:
                 self.add_item(self.button_upscale)
@@ -76,6 +79,11 @@ class ImageActions(discord.ui.View):
                 await interaction.message.edit(view=self)
             except:
                 pass
+
+    async def variation_image(self, interaction: discord.Interaction):
+        from aimage.views.variation import VariationView
+        view = VariationView(self, interaction)
+        await interaction.response.send_message(view=view, ephemeral=True)
 
     async def upscale_image(self, interaction: discord.Interaction):
         from aimage.views.hi_res import HiresView
