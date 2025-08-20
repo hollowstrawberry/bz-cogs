@@ -153,6 +153,8 @@ class AImage(Settings,
         "checkpoint": "The main AI model used to generate the image.",
         "vae": "The VAE converts the final details of the image.",
         "lora": "Shortcut to insert LoRA into the prompt.",
+        "subseed": "Random number that defines variations on a set seed.",
+        "variation": "Also known as subseed strength, makes variations on a set seed.",
     }
 
     _parameter_autocompletes = {
@@ -200,6 +202,8 @@ class AImage(Settings,
         lora: str = "",
         cfg: app_commands.Range[float, 2, 8] = None,
         seed: app_commands.Range[int, -1, None] = -1,
+        subseed: app_commands.Range[int, -1, None] = -1,
+        variation: app_commands.Range[float, 0, 0.5] = 0,
         vae: str = None,
     ):
         """
@@ -225,7 +229,9 @@ class AImage(Settings,
             seed=seed,
             checkpoint=checkpoint,
             vae=vae,
-            lora=lora
+            lora=lora,
+            subseed=subseed,
+            subseed_strength=variation
         )
 
         await self.generate_image(interaction, params=params)
@@ -250,6 +256,8 @@ class AImage(Settings,
             scale: app_commands.Range[float, 0.5, 2.0] = 1,
             cfg: app_commands.Range[float, 2, 8] = None,
             seed: app_commands.Range[int, -1, None] = -1,
+            subseed: app_commands.Range[int, -1, None] = -1,
+            variation: app_commands.Range[float, 0, 0.5] = 0,
             vae: str = None,
     ):
         """
@@ -285,6 +293,8 @@ class AImage(Settings,
             width=image.width*scale,
             init_image=await image.read(),
             denoising=denoising,
+            subseed=subseed,
+            subseed_strength=variation
         )
 
         await self.generate_img2img(interaction, params=params)
