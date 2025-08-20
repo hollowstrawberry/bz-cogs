@@ -10,13 +10,13 @@ from aimage.common.constants import VIEW_TIMEOUT
 
 async def send_response(context: Union[commands.Context, discord.Interaction], **kwargs) -> discord.Message:
     if isinstance(context, discord.Interaction):
-        return await context.followup.send(**kwargs)
+        await context.followup.send(**kwargs)
     else:
+        await context.send(**kwargs)
         try:
             await context.message.remove_reaction("⏳", context.bot.user)
         except:
             pass
-        return await context.send(**kwargs)
 
 
 def round_to_nearest(x, base):
