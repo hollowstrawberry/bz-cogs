@@ -12,15 +12,19 @@ class VariationView(discord.ui.View):
         self.src_button = parent.button_variation
         self.payload = copy(parent.payload)
         self.generate_image = parent.generate_image
+        self.reroll = True
         self.strength = 0.05
+        if self.payload.get("subseed_strength", 0) > 0:
+            self.add_item(VariationTypeSelect(self))
         self.add_item(VariationStrengthSelect(self))
 
-    @discord.ui.button(emoji='🤏🏻', label='Make Variation', style=discord.ButtonStyle.blurple, row=2)
+    @discord.ui.button(emoji='🤏🏻', label='Make Variation', style=discord.ButtonStyle.blurple, row=3)
     async def makevariation(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.defer(thinking=True)
         params = self.src_view.get_params_dict()
         self.payload["seed"] = int(params["Seed"])
-        self.payload["subseed"] = -1
+        if self.reroll:
+            self.payload["subseed"] = -1
         self.payload["subseed_strength"] = self.strength
 
         self.src_button.disabled = True
@@ -45,6 +49,19 @@ class VariationStrengthSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         self.parent.strength = float(self.values[0]) / 100
+        for option in self.options:
+            option.default = option.value == self.values[0]
+        await interaction.response.edit_message(view=self.parent)
+
+class VariationTypeSelect(discord.ui.Select):
+    def __init__(self, parent: VariationView,):
+        self.parent = parent
+        options = [discord.SelectOption(label=f"Reroll subseed", value="1", default=True),
+                   discord.SelectOption(label=f"Keep subseed", value="0")]
+        super().__init__(options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        self.parent.reroll = bool(int(self.values[0]))
         for option in self.options:
             option.default = option.value == self.values[0]
         await interaction.response.edit_message(view=self.parent)
