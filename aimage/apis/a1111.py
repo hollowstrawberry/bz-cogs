@@ -144,12 +144,10 @@ class A1111(BaseAPI):
         if await self.config.guild(self.guild).tiledvae():
             payload["alwayson_scripts"].update(TILED_VAE_ARGS)
 
-        #payload["alwayson_scripts"].update(NEVER_OOM_ARGS)
-
-        if not (await self.config.guild(self.guild).nsfw()):
-            tuning = await self.config.guild(self.guild).nsfw_tuning()
-            payload["script_name"] = "CensorScript"
-            payload["script_args"] = [True, True, tuning]
+        nsfw = await self.config.guild(self.guild).nsfw()
+        tuning = await self.config.guild(self.guild).nsfw_tuning()
+        payload["script_name"] = "CensorScript"
+        payload["script_args"] = [True, not nsfw, tuning]
 
         return payload
 
