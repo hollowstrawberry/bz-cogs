@@ -38,7 +38,7 @@ class ImageHandler(MixinMeta):
         prompt = params.prompt if params else payload.get("prompt", "")
 
         if await self._contains_blacklisted_word(guild, prompt):
-            return await send_response(context, content=":warning: Blocked NSFW prompt.")
+            return await send_response(context, content=":warning: Blocked prompt.")
 
         try:
             self.generating[user.id] = True
@@ -67,10 +67,11 @@ class ImageHandler(MixinMeta):
         finally:
             self.generating[user.id] = False
 
-        #if response.is_nsfw and not await self.config.guild(guild).allow_nsfw():
-        #    return await send_response(context, content=f"🔞 {user.mention} generated a possible NSFW image with prompt: `{prompt}`", allowed_mentions=discord.AllowedMentions.none())
+        if response.is_nsfw and not context.channel.is_nsfw():
+            return await send_response(context, content=f"🔞 Blocked NSFW image.", allowed_mentions=discord.AllowedMentions.none())
 
-        file = discord.File(io.BytesIO(response.data), filename=f"image_{context.message.id if context.message else context.id}.{response.extension}")
+        id = context.message.id if context.message else context.id
+        file = discord.File(io.BytesIO(response.data), filename=f"image_{id}.{response.extension}", spoiler=response.is_nsfw)
         maxsize = await self.config.guild(guild).max_img2img()
         view = ImageActions(self, response.info_string, response.payload, user, context.channel, maxsize)
         msg = await send_response(context, file=file, view=view)
