@@ -23,8 +23,7 @@ class VariationView(discord.ui.View):
         await interaction.response.defer(thinking=True)
         params = self.src_view.get_params_dict()
         self.payload["seed"] = int(params["Seed"])
-        if self.reroll:
-            self.payload["subseed"] = -1
+        self.payload["subseed"] = -1 if self.reroll else int(params["Variation seed"])
         self.payload["subseed_strength"] = self.strength
 
         self.src_button.disabled = True
