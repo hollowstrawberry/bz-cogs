@@ -28,7 +28,7 @@ class HiresView(discord.ui.View):
         if self.adetailer:
             self.add_item(AdetailerSelect(self))
 
-    @discord.ui.button(emoji='⬆', label='Upscale', style=discord.ButtonStyle.blurple, row=5) # type: ignore
+    @discord.ui.button(emoji='⬆', label='Upscale', style=discord.ButtonStyle.blurple, row=4) # type: ignore
     async def upscale(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.defer(thinking=True)
         assert self.src_interaction.message
