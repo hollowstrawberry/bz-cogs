@@ -219,9 +219,6 @@ class AImage(Settings,
 
         width, height = tuple(int(x) for x in resolution.split("x"))
 
-        if "masterpiece" not in prompt and "best quality" not in prompt:
-            prompt = "masterpiece, best quality, " + prompt
-
         params = ImageGenParams(
             prompt=prompt,
             negative_prompt=negative_prompt,
