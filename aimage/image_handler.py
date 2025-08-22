@@ -51,7 +51,7 @@ class ImageHandler(MixinMeta):
                     api = await self.get_api_instance(context)
                     generate_func = getattr(api, generate_method)
                     response: ImageResponse = await generate_func(params, payload)
-                except (aiohttp.ClientOSError, RuntimeError):
+                except (RuntimeError, aiohttp.ClientOSError, aiohttp.ServerDisconnectedError):
                     await asyncio.sleep(5)
                 else:
                     break
