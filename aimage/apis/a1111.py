@@ -110,6 +110,9 @@ class A1111(BaseAPI):
             else:
                 params.negative_prompt = stock_negative_prompt
 
+        if "masterpiece" not in params.prompt and "best quality" not in params.prompt:
+            params.prompt = "masterpiece, best quality, " + params.prompt
+
         payload: Dict[str, Any] = {
             "prompt": f"{params.prompt} {params.lora}",
             "negative_prompt": params.negative_prompt,
