@@ -5,9 +5,11 @@ import discord
 from aimage.common.constants import ADETAILER_ARGS, AUTO_COMPLETE_UPSCALERS
 from aimage.views.image_actions import ImageActions
 
+
 class HiresView(discord.ui.View):
     def __init__(self, parent: ImageActions, interaction: discord.Interaction, maxsize: int):
         super().__init__()
+        assert interaction.guild
         self.src_view = parent
         self.src_interaction = interaction
         self.src_button = parent.button_upscale
@@ -26,9 +28,10 @@ class HiresView(discord.ui.View):
         if self.adetailer:
             self.add_item(AdetailerSelect(self))
 
-    @discord.ui.button(emoji='⬆', label='Upscale', style=discord.ButtonStyle.blurple, row=4)
+    @discord.ui.button(emoji='⬆', label='Upscale', style=discord.ButtonStyle.blurple, row=5) # type: ignore
     async def upscale(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.defer(thinking=True)
+        assert self.src_interaction.message
         self.payload["enable_hr"] = True
         self.payload["hr_upscaler"] = self.upscaler
         self.payload["hr_scale"] = self.scale
@@ -38,7 +41,7 @@ class HiresView(discord.ui.View):
         self.payload["hr_negative_prompt"] = self.payload["negative_prompt"]
         self.payload["hr_resize_x"] = 0
         self.payload["hr_resize_y"] = 0
-        params = self.src_view.get_params_dict()
+        params = self.src_view.get_params_dict() or {}
         self.payload["seed"] = int(params["Seed"])
         self.payload["subseed"] = int(params.get("Variation seed", -1))
         self.payload["subseed_strength"] = float(params.get("Variation seed strength", 0))

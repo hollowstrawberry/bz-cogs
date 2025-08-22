@@ -3,7 +3,7 @@ from typing import Optional
 
 import discord
 from redbot.core import checks, commands
-from redbot.core.utils.menus import SimpleMenu
+from redbot.core.utils.menus import SimpleMenu # type: ignore
 
 from aimage.abc import MixinMeta
 from aimage.common.constants import API_Type
@@ -13,7 +13,7 @@ from aimage.views.api_type import APITypeView
 
 class Settings(MixinMeta):
 
-    @commands.group(name="aimage")
+    @commands.group(name="aimage") # type: ignore
     @commands.guild_only()
     @checks.bot_has_permissions(embed_links=True, add_reactions=True)
     @checks.admin_or_permissions(manage_guild=True)
@@ -67,7 +67,7 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         if not endpoint:
-            endpoint = None
+            endpoint = ""
         elif not endpoint.endswith("/"):
             endpoint += "/"
 

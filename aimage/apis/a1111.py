@@ -2,7 +2,7 @@ import base64
 import json
 import logging
 from enum import Enum
-from typing import Union
+from typing import Any, Dict, Union
 
 import discord
 from redbot.core import commands
@@ -62,13 +62,16 @@ A1111_SAMPLERS = [
 class A1111(BaseAPI):
     def __init__(self, cog: MixinMeta, context: Union[commands.Context, discord.Interaction]):
         super().__init__(cog, context)
+        assert self.guild
         cog.autocomplete_cache[self.guild.id]["samplers"] = A1111_SAMPLERS
 
     async def _init(self):
+        assert self.guild
         self.endpoint = await self.config.guild(self.guild).endpoint()
         self.auth = get_auth(await self.config.guild(self.guild).auth())
 
     async def update_autocomplete_cache(self, cache):
+        assert self.guild
         for page, cache_key in cache_mapping.items():
             try:
                 data = await self._get_terms(page)
@@ -97,6 +100,7 @@ class A1111(BaseAPI):
         return await self._post_image_gen(payload, ImageGenerationType.IMG2IMG)
 
     async def _generate_payload(self, params: ImageGenParams, init_image: bytes = None) -> dict:
+        assert self.guild
         if params.negative_prompt is None:
             params.negative_prompt = ""
         stock_negative_prompt = await self.config.guild(self.guild).negative_prompt()
@@ -106,7 +110,7 @@ class A1111(BaseAPI):
             else:
                 params.negative_prompt = stock_negative_prompt
 
-        payload = {
+        payload: Dict[str, Any] = {
             "prompt": f"{params.prompt} {params.lora}",
             "negative_prompt": params.negative_prompt,
             "styles": params.style.split(", ") if params.style else [],

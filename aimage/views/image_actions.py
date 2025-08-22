@@ -1,16 +1,12 @@
 import asyncio
-import io
 from collections import OrderedDict
-from copy import copy
 from typing import Optional
 
 import discord
 from redbot.core.bot import Red
 
 from aimage.abc import MixinMeta
-from aimage.common.constants import (ADETAILER_ARGS, AUTO_COMPLETE_UPSCALERS,
-                                     PARAM_GROUP_REGEX, PARAM_REGEX,
-                                     PARAMS_BLACKLIST, VIEW_TIMEOUT)
+from aimage.common.constants import PARAM_GROUP_REGEX, PARAM_REGEX, PARAMS_BLACKLIST, VIEW_TIMEOUT
 from aimage.common.helpers import delete_button_after
 from aimage.views.params import ParamsView
 
@@ -61,6 +57,7 @@ class ImageActions(discord.ui.View):
 
     async def regenerate_image(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
+        assert interaction.message
         self.payload["seed"] = -1
         self.payload["subseed"] = -1
         self.payload["subseed_strength"] = 0
@@ -88,6 +85,7 @@ class ImageActions(discord.ui.View):
         await interaction.response.send_message(view=view, ephemeral=True)
 
     async def delete_image(self, interaction: discord.Interaction):
+        assert interaction.message
         if not (await self._check_if_can_delete(interaction)):
             return await interaction.response.send_message(content=":warning: Only the requester and members with `Manage Messages` permission can delete this image!", ephemeral=True)
 
@@ -135,8 +133,10 @@ class ImageActions(discord.ui.View):
     async def _check_if_can_delete(self, interaction: discord.Interaction):
         is_og_user = interaction.user.id == self.og_user.id
 
-        guild = interaction.guild
-        member = guild.get_member(interaction.user.id)
+        assert interaction.guild and interaction.channel
+        member = interaction.guild.get_member(interaction.user.id)
+        if not member:
+            return False
         can_delete = await self.bot.is_owner(member) or interaction.channel.permissions_for(member).manage_messages
 
         return is_og_user or can_delete

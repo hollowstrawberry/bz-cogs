@@ -1,11 +1,11 @@
-import asyncio
 import io
 import re
-import logging
 import random
+import asyncio
+import aiohttp
+import logging
 from typing import Union
 
-import aiohttp
 import discord
 from redbot.core import commands
 
@@ -28,9 +28,11 @@ class ImageHandler(MixinMeta):
         if not isinstance(context, discord.Interaction):
             await context.message.add_reaction("⏳")
 
+        payload = payload or {}
         guild = context.guild
+        channel = context.channel
         user = context.user if isinstance(context, discord.Interaction) else context.author
-        assert guild and isinstance(user, discord.Member)
+        assert guild and isinstance(channel, discord.TextChannel) and isinstance(user, discord.Member)
 
         vip_role = await self.config.guild(guild).vip_role()
         if self.generating[user.id] and all(role.id != vip_role for role in user.roles):
@@ -69,13 +71,13 @@ class ImageHandler(MixinMeta):
         finally:
             self.generating[user.id] = False
 
-        if response.is_nsfw and not context.channel.is_nsfw():
+        if response.is_nsfw and not channel.is_nsfw():
             return await send_response(context, content=f"🔞 Blocked NSFW image.", allowed_mentions=discord.AllowedMentions.none())
 
-        id = context.message.id if context.message else context.id
-        file = discord.File(io.BytesIO(response.data), filename=f"image_{id}.{response.extension}", spoiler=response.is_nsfw)
+        id = context.id if isinstance(context, discord.Interaction) else context.message.id
+        file = discord.File(io.BytesIO(response.data or b''), filename=f"image_{id}.{response.extension}", spoiler=response.is_nsfw)
         maxsize = await self.config.guild(guild).max_img2img()
-        view = ImageActions(self, response.info_string, response.payload, user, context.channel, maxsize)
+        view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
         msg = await send_response(context, file=file, view=view)
         asyncio.create_task(delete_button_after(msg))
 
@@ -84,7 +86,7 @@ class ImageHandler(MixinMeta):
 
         imagescanner = self.bot.get_cog("ImageScanner")
         if imagescanner and response.extension == "png":
-            if context.channel.id in imagescanner.scan_channels:
+            if channel.id in imagescanner.scan_channels:
                 imagescanner.image_cache[msg.id] = ({0: response.info_string}, {0: response.data})
                 await msg.add_reaction("🔎")
 

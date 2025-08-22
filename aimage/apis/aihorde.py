@@ -26,15 +26,18 @@ class AIHorde(BaseAPI):
 
     def __init__(self, cog: MixinMeta, context: Union[commands.Context, discord.Interaction]):
         super().__init__(cog, context)
+        assert self.guild
         cog.autocomplete_cache[self.guild.id]["samplers"] = AI_HORDE_SAMPLERS
         self.bot: Red = cog.bot
 
     async def _init(self):
+        assert self.guild
         self.endpoint = await self.config.guild(self.guild).endpoint()
         api_key = (await self.bot.get_shared_api_tokens("aihorde")).get("apikey") or "0000000000"
         self.headers = {'apikey': api_key}
 
     async def update_autocomplete_cache(self, cache):
+        assert self.guild
         # models only supported
         res = await self.session.get(f"{self.endpoint}/v2/status/models?type=image&model_state=known", headers=self.headers)
         try:
@@ -46,6 +49,7 @@ class AIHorde(BaseAPI):
             pass
 
     async def generate_image(self, params: ImageGenParams, payload: dict = None):
+        assert self.guild
         if payload:
             payload["params"]["seed"] = str(random.randint(-sys.maxsize - 1, sys.maxsize))
         elif params and params.seed == -1:

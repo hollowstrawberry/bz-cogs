@@ -164,9 +164,9 @@ class AImage(Settings,
         "vae": vae_autocomplete,
     }
 
-    @commands.command(name="txt2img")
     @checks.bot_has_permissions(attach_files=True)
     @checks.bot_in_a_guild()
+    @commands.command(name="txt2img")
     async def imagine(self, ctx: commands.Context, *, prompt: str):
         """
         Generate an image with Stable Diffusion
@@ -174,6 +174,7 @@ class AImage(Settings,
         **Arguments**
             - `prompt` a prompt to generate an image from
         """
+        assert ctx.guild
         if not self.autocomplete_cache[ctx.guild.id]:
             asyncio.create_task(self._update_autocomplete_cache(ctx))
 
@@ -291,13 +292,13 @@ class AImage(Settings,
             checkpoint=checkpoint,
             vae=vae,
             lora=lora,
+            subseed=subseed,
+            subseed_strength=variation,
             # img2img
-            height=image.height*scale,
-            width=image.width*scale,
+            height=round(image.height*scale),
+            width=round(image.width*scale),
             init_image=await image.read(),
             denoising=denoising,
-            subseed=subseed,
-            subseed_strength=variation
         )
 
         await self.generate_img2img(interaction, params=params)
