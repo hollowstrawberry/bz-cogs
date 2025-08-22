@@ -16,6 +16,7 @@ class VariationView(discord.ui.View):
         self.reroll = True
         self.strength = 0.05
         if self.payload.get("subseed_strength", 0) > 0:
+            self.strength = self.payload.get("subseed_strength", 0)
             self.add_item(VariationTypeSelect(self))
         self.add_item(VariationStrengthSelect(self))
 
@@ -42,9 +43,11 @@ class VariationView(discord.ui.View):
 
 
 class VariationStrengthSelect(discord.ui.Select):
-    def __init__(self, parent: VariationView,):
+    def __init__(self, parent: VariationView):
         self.parent = parent
-        options = [discord.SelectOption(label=f"{num}%", value=str(num), default=num==5) for num in range(1, 21)]
+        default = round(parent.strength * 100)
+        options = [discord.SelectOption(label=f"Strength: {num}%", value=str(num), default=num==default)
+                   for num in range(1, 21)]
         super().__init__(options=options)
 
     async def callback(self, interaction: discord.Interaction):
