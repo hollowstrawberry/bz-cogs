@@ -22,10 +22,11 @@ class Settings(MixinMeta):
         pass
 
     @aimage.command(name="config")
-    async def config(self, ctx: commands.Context):
+    async def config_cmd(self, ctx: commands.Context):
         """
         Show the current AI Image config
         """
+        assert ctx.guild
         guild = ctx.guild
         config = await self.config.guild(guild).get_raw()
 
@@ -64,6 +65,7 @@ class Settings(MixinMeta):
         """
         Set the endpoint URL for AI Image (eg. `https://localhost/sdapi/v1/` or `https://aihorde.net/api/`)
         """
+        assert ctx.guild
         if not endpoint:
             endpoint = None
         elif not endpoint.endswith("/"):
@@ -86,7 +88,7 @@ class Settings(MixinMeta):
         """
         Toggles filtering of NSFW images (A1111 only)
         """
-
+        assert ctx.guild
         nsfw = await self.config.guild(ctx.guild).nsfw()
         if nsfw:
             await ctx.message.add_reaction("🔄")
@@ -105,7 +107,7 @@ class Settings(MixinMeta):
         Views or sets the sensitivity for the nsfw filter (A1111 only)
         Valid values are between -0.2 and 0.2
         """
-
+        assert ctx.guild
         if value is None:
             nsfw_tuning = await self.config.guild(ctx.guild).nsfw_tuning()
             await ctx.send(f"The sensitivity is currently set to `{nsfw_tuning:.3f}`")
@@ -122,6 +124,7 @@ class Settings(MixinMeta):
         """
         Set the default negative prompt
         """
+        assert ctx.guild
         if not negative_prompt:
             negative_prompt = ""
         await self.config.guild(ctx.guild).negative_prompt.set(negative_prompt)
@@ -132,6 +135,7 @@ class Settings(MixinMeta):
         """
         Set the default cfg
         """
+        assert ctx.guild
         await self.config.guild(ctx.guild).cfg.set(cfg)
         await ctx.tick(message="✅ Default CFG updated.")
 
@@ -140,6 +144,7 @@ class Settings(MixinMeta):
         """
         Set the default sampling steps
         """
+        assert ctx.guild
         await self.config.guild(ctx.guild).sampling_steps.set(sampling_steps)
         await ctx.tick(message="✅ Default sampling steps updated.")
 
@@ -148,6 +153,7 @@ class Settings(MixinMeta):
         """
         Set the default sampler
         """
+        assert ctx.guild
         await ctx.message.add_reaction("🔄")
         await self._update_autocomplete_cache(ctx)
         samplers = self.autocomplete_cache[ctx.guild.id].get("samplers") or []
@@ -164,6 +170,7 @@ class Settings(MixinMeta):
         """
         Set the default scheduler
         """
+        assert ctx.guild
         await ctx.message.add_reaction("🔄")
         await self._update_autocomplete_cache(ctx)
         schedulers = self.autocomplete_cache[ctx.guild.id].get("schedulers") or []
@@ -180,6 +187,7 @@ class Settings(MixinMeta):
         """
         Set the default width
         """
+        assert ctx.guild
         if width < 256 or width > 1536:
             return await ctx.send("Value must range between 256 and 1536.")
         await self.config.guild(ctx.guild).width.set(width)
@@ -190,6 +198,7 @@ class Settings(MixinMeta):
         """
         Set the default height
         """
+        assert ctx.guild
         if height < 256 or height > 1536:
             return await ctx.send("Value must range between 256 and 1536.")
         await self.config.guild(ctx.guild).height.set(height)
@@ -201,6 +210,7 @@ class Settings(MixinMeta):
         Set the maximum size (in pixels squared) of img2img and hires upscale.
         Used to prevent out of memory errors. Default is 1536.
         """
+        assert ctx.guild
         if resolution < 512 or resolution > 4096:
             return await ctx.send("Value must range between 512 and 4096.")
         await self.config.guild(ctx.guild).max_img2img.set(resolution)
@@ -211,6 +221,7 @@ class Settings(MixinMeta):
         """
         Set the default checkpoint / model used for generating images.
         """
+        assert ctx.guild
         await ctx.message.add_reaction("🔄")
         await self._update_autocomplete_cache(ctx)
         data = self.autocomplete_cache[ctx.guild.id].get("checkpoints") or []
@@ -236,6 +247,7 @@ class Settings(MixinMeta):
         """
         Set the default vae used for generating images.
         """
+        assert ctx.guild
         await ctx.message.add_reaction("🔄")
         await self._update_autocomplete_cache(ctx)
         data = self.autocomplete_cache[ctx.guild.id].get("vaes") or []
@@ -260,6 +272,7 @@ class Settings(MixinMeta):
         """
         Sets the account from A1111 host flag `--api-auth` in this format `username:password` 
         """
+        assert ctx.guild
         try:
             await ctx.message.delete()
         except Exception:
@@ -272,6 +285,7 @@ class Settings(MixinMeta):
         """
         Whether to use face `adetailer` A1111 extension on generated pictures, which improves quality.
         """
+        assert ctx.guild
         new = not await self.config.guild(ctx.guild).adetailer()
         if new:
             await ctx.message.add_reaction("🔄")
@@ -289,6 +303,7 @@ class Settings(MixinMeta):
         """
         Whether to use tiled vae on generated pictures from A1111 hosts, which is used to prevent out of memory errors.
         """
+        assert ctx.guild
         new = not await self.config.guild(ctx.guild).tiledvae()
         if new:
             await ctx.message.add_reaction("🔄")
@@ -315,6 +330,7 @@ class Settings(MixinMeta):
 
         (Separate multiple inputs with spaces, and use quotes (\"\") if needed)
         """
+        assert ctx.guild
         current_words = await self.config.guild(ctx.guild).words_blacklist()
         added = []
         for word in words:
@@ -332,6 +348,7 @@ class Settings(MixinMeta):
         """
         Sets a regex for the blacklist
         """
+        assert ctx.guild
         if not regex or not regex.strip():
             regex = await self.config.guild(ctx.guild).blacklist_regex()
             if not regex:
@@ -349,6 +366,7 @@ class Settings(MixinMeta):
 
         (Separate multiple inputs with spaces, and use quotes (\"\") if needed)
         """
+        assert ctx.guild
         current_words = await self.config.guild(ctx.guild).words_blacklist()
 
         removed = []
@@ -366,6 +384,7 @@ class Settings(MixinMeta):
         """
         List all words in the blacklist
         """
+        assert ctx.guild
         current_words = await self.config.guild(ctx.guild).words_blacklist()
 
         if not current_words:
@@ -392,22 +411,47 @@ class Settings(MixinMeta):
         """
         Clear the blacklist to nothing!
         """
+        assert ctx.guild
         await self.config.guild(ctx.guild).words_blacklist.set([])
         await ctx.tick(message="✅ Blacklist cleared.")
 
     @aimage.command()
     @checks.is_owner()
     @checks.bot_in_a_guild()
-    async def forcesync(self, ctx: commands.Context):
+    async def sync(self, ctx: commands.Context):
         """
-        Resync slash commands / image generators 
-
-        (Mainly a debug tool)
+        Updates the autocomplete cache
         """
-        await ctx.message.add_reaction("🔄")
         await self._update_autocomplete_cache(ctx)
-        self.bot.tree.copy_global_to(
-            guild=discord.Object(id=ctx.guild.id))
-        synced = await ctx.bot.tree.sync(guild=ctx.guild)
-        await ctx.message.remove_reaction("🔄", ctx.me)
-        await ctx.send(f"Force synced {len(synced)} commands")
+        await ctx.message.add_reaction("✅")
+        
+    @aimage.group()
+    @checks.is_owner()
+    @checks.bot_in_a_guild()
+    async def vip(self, _: commands.Context):
+        """
+        Manage the VIP role for image generation, which can generate as many images at the same time as they want.
+        """
+        pass
+
+    @vip.command(name="view")
+    async def vip_view(self, ctx: commands.Context):
+        """
+        View the VIP role
+        """
+        assert ctx.guild
+        role_id = await self.config.guild(ctx.guild).vip_role()
+        role = ctx.guild.get_role(role_id)
+        if role:
+            await ctx.send(f"Current VIP role is {role.mention}", allowed_mentions=discord.AllowedMentions.none())
+        else:
+            await ctx.send("No VIP role set.")
+
+    @vip.command(name="set", aliases=["role"])
+    async def vip_set(self, ctx: commands.Context, role: discord.Role):
+        """
+        View the VIP role
+        """
+        assert ctx.guild
+        await self.config.guild(ctx.guild).vip_role.set(role.id)
+        await ctx.send(f"VIP role set to {role.mention}", allowed_mentions=discord.AllowedMentions.none())

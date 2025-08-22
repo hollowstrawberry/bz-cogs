@@ -53,7 +53,8 @@ class AImage(Settings,
             "height": 1024,
             "max_img2img": 1536,
             "auth": None,
-            "scheduler": "Automatic"
+            "scheduler": "Automatic",
+            "vip_role": -1,
         }
 
         self.session = aiohttp.ClientSession()
@@ -130,7 +131,7 @@ class AImage(Settings,
         choices = self.autocomplete_cache[interaction.guild_id].get("vaes") or []
         return await self.object_autocomplete(interaction, current, choices)
 
-    @ staticmethod
+    @staticmethod
     def filter_list(options: list, current: str, strict: bool = False):
         results = []
 
@@ -163,9 +164,9 @@ class AImage(Settings,
         "vae": vae_autocomplete,
     }
 
-    @ commands.command(name="txt2img")
-    @ checks.bot_has_permissions(attach_files=True)
-    @ checks.bot_in_a_guild()
+    @commands.command(name="txt2img")
+    @checks.bot_has_permissions(attach_files=True)
+    @checks.bot_in_a_guild()
     async def imagine(self, ctx: commands.Context, *, prompt: str):
         """
         Generate an image with Stable Diffusion
@@ -181,17 +182,17 @@ class AImage(Settings,
 
     
 
-    @ app_commands.command(name="txt2img")
-    @ app_commands.describe(resolution="The dimensions of the image.",
-                            **_parameter_descriptions)
-    @ app_commands.autocomplete(**_parameter_autocompletes)
-    @ app_commands.checks.bot_has_permissions(attach_files=True)
-    @ app_commands.choices(resolution=[
+    @app_commands.command(name="txt2img")
+    @app_commands.describe(resolution="The dimensions of the image.",
+                           **_parameter_descriptions)
+    @app_commands.autocomplete(**_parameter_autocompletes)
+    @app_commands.checks.bot_has_permissions(attach_files=True)
+    @app_commands.choices(resolution=[
             app_commands.Choice(name="Square", value="1024x1024"),
             app_commands.Choice(name="Portrait", value="832x1216"),
             app_commands.Choice(name="Landscape", value="1216x832"),
         ])
-    @ app_commands.guild_only()
+    @app_commands.guild_only()
     async def imagine_app(
         self,
         interaction: discord.Interaction,
@@ -236,14 +237,14 @@ class AImage(Settings,
 
         await self.generate_image(interaction, params=params)
 
-    @ app_commands.command(name="img2img")
-    @ app_commands.describe(image="The input image.",
-                            denoising="How much the image should change. Try around 0.6",
-                            scale="Resizes the image up or down, 0.5 to 2.0.",
-                            **_parameter_descriptions)
-    @ app_commands.autocomplete(**_parameter_autocompletes)
-    @ app_commands.checks.bot_has_permissions(attach_files=True)
-    @ app_commands.guild_only()
+    @app_commands.command(name="img2img")
+    @app_commands.describe(image="The input image.",
+                           denoising="How much the image should change. Try around 0.6",
+                           scale="Resizes the image up or down, 0.5 to 2.0.",
+                           **_parameter_descriptions)
+    @app_commands.autocomplete(**_parameter_autocompletes)
+    @app_commands.checks.bot_has_permissions(attach_files=True)
+    @app_commands.guild_only()
     async def reimagine_app(
             self,
             interaction: discord.Interaction,
@@ -269,9 +270,11 @@ class AImage(Settings,
         if not await self._can_run_command(ctx, "txt2img"):
             return await interaction.followup.send("You do not have permission to do this.", ephemeral=True)
 
+        assert ctx.guild and image.content_type
         if not image.content_type.startswith("image/"):
             return await interaction.followup.send("The file you uploaded is not a valid image.", ephemeral=True)
 
+        assert image.width and image.height
         size = image.width*image.height*scale*scale
         maxsize = (await self.config.guild(ctx.guild).max_img2img())**2
         if size > maxsize:
@@ -313,6 +316,7 @@ class AImage(Settings,
         return can
 
     async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction]):
+        assert ctx.guild
         api_type = await self.config.guild(ctx.guild).api_type()
         if api_type == API_Type.AUTOMATIC1111.value:
             from aimage.apis.a1111 import A1111
@@ -324,6 +328,7 @@ class AImage(Settings,
         return instance
 
     async def _update_autocomplete_cache(self, ctx: Union[commands.Context, discord.Interaction]):
+        assert ctx.guild
         api = await self.get_api_instance(ctx)
         try:
             logger.debug(f"Ran a update to get possible autocomplete terms in server {ctx.guild.id}")

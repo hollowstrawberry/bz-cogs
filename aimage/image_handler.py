@@ -30,8 +30,10 @@ class ImageHandler(MixinMeta):
 
         guild = context.guild
         user = context.user if isinstance(context, discord.Interaction) else context.author
+        assert guild and isinstance(user, discord.Member)
 
-        if self.generating[user.id]:
+        vip_role = await self.config.guild(guild).vip_role()
+        if self.generating[user.id] and all(role.id != vip_role for role in user.roles):
             content = ":warning: You must wait for your current image to finish generating before you can request a new one."
             return await send_response(context, content=content, ephemeral=True)
 
