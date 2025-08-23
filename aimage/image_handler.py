@@ -1,6 +1,4 @@
 import io
-import re
-import random
 import logging
 import asyncio
 import aiohttp
@@ -15,7 +13,7 @@ from aimage.common.helpers import delete_button_after, send_response
 from aimage.common.params import ImageGenParams
 from aimage.views.image_actions import ImageActions
 
-logger = logging.getLogger("red.bz_cogs.aimage")
+log = logging.getLogger("red.bz_cogs.aimage")
 
 
 class ImageHandler(MixinMeta):
@@ -30,12 +28,14 @@ class ImageHandler(MixinMeta):
         user = context.user if isinstance(context, discord.Interaction) else context.author
         assert guild and isinstance(channel, discord.TextChannel) and isinstance(user, discord.Member)
 
+        prompt = params.prompt if params else payload.get("prompt", "")
         if params and params.init_image or payload and payload.get("init_images", ""):
             generate_method = 'generate_img2img'
         else:
             generate_method = 'generate_image'
 
         try:
+            log.info(f"Starting generation, {prompt=}")
             self.generating[user.id] = True
             for _ in range(10):
                 try:
@@ -43,22 +43,25 @@ class ImageHandler(MixinMeta):
                     generate_func = getattr(api, generate_method)
                     response: ImageResponse = await generate_func(params, payload)
                 except (RuntimeError, aiohttp.ClientOSError, aiohttp.ServerDisconnectedError):
+                    log.info("Failed to generate, sleeping...")
                     await asyncio.sleep(5)
                 else:
                     break
         except ValueError as error:
             return await send_response(context, content=f":warning: Invalid parameter: {error}", ephemeral=True)
         except aiohttp.ClientResponseError as error:
-            logger.exception(f"Failed request in host {guild.id}")
+            log.exception(f"Failed request in host {guild.id}")
             return await send_response(context, content=":warning: Timed out! Bad response from host!", ephemeral=True)
         except aiohttp.ClientConnectorError:
-            logger.exception(f"Failed request in server {guild.id}")
+            log.exception(f"Failed request in server {guild.id}")
             return await send_response(context, content=":warning: Timed out! Could not reach host!", ephemeral=True)
         except NotImplementedError:
             return await send_response(context, content=":warning: This method is not supported by the host!", ephemeral=True)
         except Exception:
-            logger.exception(f"Failed request in server {guild.id}")
+            log.exception(f"Failed request in server {guild.id}")
             return await send_response(context, content=":warning: Something went wrong!", ephemeral=True)
+        else:
+            log.info("Finished generation")
         finally:
             self.generating[user.id] = False
 
@@ -71,7 +74,7 @@ class ImageHandler(MixinMeta):
         view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
 
         msg = await send_response(context, file=file, view=view)
-        
+
         asyncio.create_task(delete_button_after(msg))
         asyncio.create_task(self._update_autocomplete_cache(context))
         if callback:

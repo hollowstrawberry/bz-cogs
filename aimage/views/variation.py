@@ -28,7 +28,7 @@ class VariationView(discord.ui.View):
         self.payload["subseed"] = -1 if self.reroll else int(params["Variation seed"])
         self.payload["subseed_strength"] = self.strength
 
-        await self.generate_image(interaction, payload=self.payload)
+        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback())
         assert self.src_interaction.message
         self.src_button.disabled = True
         await asyncio.gather(self.src_interaction.message.edit(view=self.src_view),

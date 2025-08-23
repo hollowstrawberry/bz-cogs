@@ -312,7 +312,8 @@ class AImage(Settings,
 
         if await self._contains_blacklisted_word(guild, prompt):
             return await send_response(context, content=":warning: Blocked prompt.")
-
+        
+        log.info(f"Queueing generation, {prompt=}")
         self.queue_add(self._execute_image_generation(context, payload, params, callback))
 
     async def _contains_blacklisted_word(self, guild: discord.Guild, prompt: str):
