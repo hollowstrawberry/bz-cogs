@@ -1,16 +1,15 @@
 import io
 import re
 import random
+import logging
 import asyncio
 import aiohttp
-import logging
-from typing import Union
-
 import discord
+from typing import Coroutine, Optional, Union
+
 from redbot.core import commands
 
 from aimage.abc import MixinMeta
-from aimage.apis.a1111 import A1111
 from aimage.apis.response import ImageResponse
 from aimage.common.helpers import delete_button_after, send_response
 from aimage.common.params import ImageGenParams
@@ -20,29 +19,21 @@ logger = logging.getLogger("red.bz_cogs.aimage")
 
 
 class ImageHandler(MixinMeta):
-    async def _execute_image_generation(self, context: Union[commands.Context, discord.Interaction],
+    async def _execute_image_generation(self,
+                                        context: Union[commands.Context, discord.Interaction],
                                         payload: dict = None,
                                         params: ImageGenParams = None,
-                                        generate_method: str = 'generate_image'):
-
-        if not isinstance(context, discord.Interaction):
-            await context.message.add_reaction("⏳")
-
+                                        callback: Optional[Coroutine] = None):
         payload = payload or {}
         guild = context.guild
         channel = context.channel
         user = context.user if isinstance(context, discord.Interaction) else context.author
         assert guild and isinstance(channel, discord.TextChannel) and isinstance(user, discord.Member)
 
-        vip_role = await self.config.guild(guild).vip_role()
-        if self.generating[user.id] and all(role.id != vip_role for role in user.roles):
-            content = ":warning: You must wait for your current image to finish generating before you can request a new one."
-            return await send_response(context, content=content, ephemeral=True)
-
-        prompt = params.prompt if params else payload.get("prompt", "")
-
-        if await self._contains_blacklisted_word(guild, prompt):
-            return await send_response(context, content=":warning: Blocked prompt.")
+        if params and params.init_image or payload and payload.get("init_images", ""):
+            generate_method = 'generate_img2img'
+        else:
+            generate_method = 'generate_image'
 
         try:
             self.generating[user.id] = True
@@ -78,32 +69,19 @@ class ImageHandler(MixinMeta):
         file = discord.File(io.BytesIO(response.data or b''), filename=f"image_{id}.{response.extension}", spoiler=response.is_nsfw)
         maxsize = await self.config.guild(guild).max_img2img()
         view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
-        msg = await send_response(context, file=file, view=view)
-        asyncio.create_task(delete_button_after(msg))
 
-        if (random.random() > 0.51):  # update only half the time
-            asyncio.create_task(self._update_autocomplete_cache(context))
+        msg = await send_response(context, file=file, view=view)
+        
+        asyncio.create_task(delete_button_after(msg))
+        asyncio.create_task(self._update_autocomplete_cache(context))
+        if callback:
+            asyncio.create_task(callback)
 
         imagescanner = self.bot.get_cog("ImageScanner")
         if imagescanner and response.extension == "png":
             if channel.id in imagescanner.scan_channels:
                 imagescanner.image_cache[msg.id] = ({0: response.info_string}, {0: response.data})
-                await msg.add_reaction("🔎")
-
-    async def generate_image(self, context: Union[commands.Context, discord.Interaction],
-                             payload: dict = None,
-                             params: ImageGenParams = None):
-        await self._execute_image_generation(context, payload, params, 'generate_image')
-
-    async def generate_img2img(self, context: discord.Interaction,
-                               payload: dict = None,
-                               params: ImageGenParams = None):
-        await self._execute_image_generation(context, payload, params, 'generate_img2img')
-
-    async def _contains_blacklisted_word(self, guild: discord.Guild, prompt: str):
-        blacklist_regex = await self.config.guild(guild).blacklist_regex()
-        if blacklist_regex:
-            return re.search(blacklist_regex, prompt, re.IGNORECASE)
-        else:
-            blacklist = await self.config.guild(guild).words_blacklist()
-            return any(word in prompt.lower() for word in blacklist)
+                try:
+                    await msg.add_reaction("🔎")
+                except discord.NotFound:
+                    pass

@@ -1,6 +1,6 @@
-from copy import copy
-
+import asyncio
 import discord
+from copy import copy
 
 from aimage.views.image_actions import ImageActions
 
@@ -28,17 +28,20 @@ class VariationView(discord.ui.View):
         self.payload["subseed"] = -1 if self.reroll else int(params["Variation seed"])
         self.payload["subseed_strength"] = self.strength
 
-        self.src_button.disabled = True
-        assert self.src_interaction.message
-        await self.src_interaction.message.edit(view=self.src_view)
-        await self.src_interaction.delete_original_response()
         await self.generate_image(interaction, payload=self.payload)
+        assert self.src_interaction.message
+        self.src_button.disabled = True
+        await asyncio.gather(self.src_interaction.message.edit(view=self.src_view),
+                             self.src_interaction.delete_original_response())
 
+    async def edit_callback(self):
+        assert self.src_interaction.message
+        await asyncio.sleep(1)
         self.src_button.disabled = False
         if not self.src_view.is_finished():
             try:
                 await self.src_interaction.message.edit(view=self.src_view)
-            except:
+            except discord.NotFound:
                 pass
 
 

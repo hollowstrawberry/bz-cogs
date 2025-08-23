@@ -1,8 +1,8 @@
+import asyncio
+import discord
 from copy import copy
 
-import discord
-
-from aimage.common.constants import ADETAILER_ARGS, AUTO_COMPLETE_UPSCALERS
+from aimage.common.constants import ADETAILER_ARGS
 from aimage.views.image_actions import ImageActions
 
 
@@ -31,7 +31,6 @@ class HiresView(discord.ui.View):
     @discord.ui.button(emoji='⬆', label='Upscale', style=discord.ButtonStyle.blurple, row=4) # type: ignore
     async def upscale(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.defer(thinking=True)
-        assert self.src_interaction.message
         self.payload["enable_hr"] = True
         self.payload["hr_upscaler"] = self.upscaler
         self.payload["hr_scale"] = self.scale
@@ -50,16 +49,20 @@ class HiresView(discord.ui.View):
         elif "ADetailer" in self.payload["alwayson_scripts"]:
             del self.payload["alwayson_scripts"]["ADetailer"]
 
+        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback())
+        assert self.src_interaction.message
         self.src_button.disabled = True
-        await self.src_interaction.message.edit(view=self.src_view)
-        await self.src_interaction.delete_original_response()
-        await self.generate_image(interaction, payload=self.payload)
+        await asyncio.gather(self.src_interaction.message.edit(view=self.src_view),
+                             self.src_interaction.delete_original_response())
 
+    async def edit_callback(self):
+        assert self.src_interaction.message
+        await asyncio.sleep(1)
         self.src_button.disabled = False
         if not self.src_view.is_finished():
             try:
                 await self.src_interaction.message.edit(view=self.src_view)
-            except:
+            except discord.NotFound:
                 pass
 
 

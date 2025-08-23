@@ -57,21 +57,25 @@ class ImageActions(discord.ui.View):
 
     async def regenerate_image(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
-        assert interaction.message
+
         self.payload["seed"] = -1
         self.payload["subseed"] = -1
         self.payload["subseed_strength"] = 0
+
+        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(interaction))
+
+        assert interaction.message
         self.button_regenerate.disabled = True
         await interaction.message.edit(view=self)
-        if self.payload.get("init_images", []):
-            await self.generate_img2img(interaction, payload=self.payload)
-        else:
-            await self.generate_image(interaction, payload=self.payload)
+
+    async def edit_callback(self, interaction: discord.Interaction):
+        assert interaction.message
+        await asyncio.sleep(1)
         self.button_regenerate.disabled = False
         if not self.is_finished():
             try:
                 await interaction.message.edit(view=self)
-            except:
+            except discord.NotFound:
                 pass
 
     async def variation_image(self, interaction: discord.Interaction):
