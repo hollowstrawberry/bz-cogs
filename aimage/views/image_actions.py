@@ -69,8 +69,8 @@ class ImageActions(discord.ui.View):
         await interaction.message.edit(view=self)
 
     async def edit_callback(self, interaction: discord.Interaction):
-        assert interaction.message
         await asyncio.sleep(1)
+        assert interaction.message
         self.button_regenerate.disabled = False
         if not self.is_finished():
             try:

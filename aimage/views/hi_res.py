@@ -56,8 +56,8 @@ class HiresView(discord.ui.View):
                              self.src_interaction.delete_original_response())
 
     async def edit_callback(self):
-        assert self.src_interaction.message
         await asyncio.sleep(1)
+        assert self.src_interaction.message
         self.src_button.disabled = False
         if not self.src_view.is_finished():
             try:
