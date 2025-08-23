@@ -12,10 +12,11 @@ from redbot.core import Config, app_commands, checks, commands
 from redbot.core.bot import Red
 
 from aimage.abc import CompositeMetaClass
-from aimage.common.constants import DEFAULT_BADWORDS_BLACKLIST, DEFAULT_NEGATIVE_PROMPT, API_Type
+from aimage.common.constants import DEFAULT_BADWORDS_BLACKLIST, DEFAULT_NEGATIVE_PROMPT
 from aimage.common.helpers import send_response
 from aimage.common.params import ImageGenParams
 from aimage.image_handler import ImageHandler
+from aimage.apis.webui_api import WebuiAPI
 from aimage.settings import Settings
 
 log = logging.getLogger("red.bz_cogs.aimage")
@@ -37,7 +38,6 @@ class AImage(Settings,
 
         default_guild = {
             "endpoint": None,
-            "api_type": API_Type.AUTOMATIC1111.value,
             "nsfw": True,
             "nsfw_tuning": -0.025,
             "words_blacklist": DEFAULT_BADWORDS_BLACKLIST,
@@ -348,13 +348,6 @@ class AImage(Settings,
             pass
 
     async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction]):
-        assert ctx.guild
-        api_type = await self.config.guild(ctx.guild).api_type()
-        if api_type == API_Type.AUTOMATIC1111.value:
-            from aimage.apis.a1111 import A1111
-            instance = A1111(self, ctx)
-        elif api_type == API_Type.AIHorde.value:
-            from aimage.apis.aihorde import AIHorde
-            instance = AIHorde(self, ctx)
+        instance = WebuiAPI(self, ctx)
         await instance._init()
         return instance

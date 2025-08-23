@@ -6,9 +6,7 @@ from redbot.core import checks, commands
 from redbot.core.utils.menus import SimpleMenu # type: ignore
 
 from aimage.abc import MixinMeta
-from aimage.common.constants import API_Type
 from aimage.common.helpers import delete_button_after
-from aimage.views.api_type import APITypeView
 
 
 class Settings(MixinMeta):
@@ -63,7 +61,7 @@ class Settings(MixinMeta):
     @aimage.command(name="endpoint")
     async def endpoint(self, ctx: commands.Context, endpoint: str):
         """
-        Set the endpoint URL for AI Image (eg. `https://localhost/sdapi/v1/` or `https://aihorde.net/api/`)
+        Set the endpoint URL for AI Image (eg. `https://localhost/sdapi/v1/`)
         """
         assert ctx.guild
         if not endpoint:
@@ -71,16 +69,12 @@ class Settings(MixinMeta):
         elif not endpoint.endswith("/"):
             endpoint += "/"
 
-        valid_endings = ['/sdapi/v1/', '/api/']
-
-        is_valid = endpoint and any(endpoint.endswith(ending) for ending in valid_endings)
-        if endpoint and not is_valid:
-            await ctx.send(f"⚠️ Endpoint URL does not end with `/sdapi/v1/` or `/api/`. Continuing anyways...")
+        if endpoint and not endpoint.endswith("/sdapi/v1/"):
+            await ctx.send(f"⚠️ Endpoint URL does not end with `/sdapi/v1/`. Continuing anyways...")
 
         await self.config.guild(ctx.guild).endpoint.set(endpoint)
-        await self.config.guild(ctx.guild).api_type.set(API_Type.AUTOMATIC1111.value)
 
-        msg = await ctx.send("Endpoint set. Select what type of API this endpoint is ⤵️ ", view=APITypeView(self, ctx))
+        msg = await ctx.send("Endpoint set.")
         asyncio.create_task(delete_button_after(msg))
 
     @aimage.command(name="nsfw")
