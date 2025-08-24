@@ -69,14 +69,18 @@ class ImageHandler(MixinMeta):
         filename = filename=f"image_{id}.{response.extension}"
         file = discord.File(io.BytesIO(response.data or b''), filename=filename, spoiler=response.is_nsfw)
         maxsize = await self.config.guild(guild).max_img2img()
-        content = f"*{message_content.strip()}*" if message_content and not use_embeds else None
         view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
         embed = None
         if use_embeds:
-            embed = discord.Embed(description=message_content, color=await self.bot.get_embed_color(context.channel))
+            description = f"-# {message_content.strip()}" if message_content else None
+            color = await self.bot.get_embed_color(context.channel)
+            embed = discord.Embed(description=description, color=color)
             embed.set_image(url=f"attachment://{filename}")
+            message_content = None
+        else:
+            message_content = f"*{message_content.strip()}*" if message_content else None
 
-        msg = await send_response(context, content=content, embed=embed, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
+        msg = await send_response(context, content=message_content, embed=embed, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
 
         asyncio.create_task(delete_button_after(msg))
         asyncio.create_task(self._update_autocomplete_cache(context))
