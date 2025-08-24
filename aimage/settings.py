@@ -133,7 +133,7 @@ class Settings(MixinMeta):
         await self.config.guild(ctx.guild).cfg.set(cfg)
         await ctx.tick(message="✅ Default CFG updated.")
 
-    @aimage.command(name="steps", aliases=["sampling_steps"])
+    @aimage.command(name="sampling_steps")
     async def sampling_steps(self, ctx: commands.Context, sampling_steps: int):
         """
         Set the default sampling steps
@@ -309,17 +309,6 @@ class Settings(MixinMeta):
 
         await self.config.guild(ctx.guild).tiledvae.set(new)
         await ctx.send(f"Tiled VAE is now {'`disabled`' if not new else '`enabled`'}")
-
-    @aimage.command(name="embeds")
-    async def use_embeds(self, ctx: commands.Context):
-        """
-        Whether to use embeds for generated images
-        """
-        assert ctx.guild
-        new = not await self.config.guild(ctx.guild).use_embeds()
-        await self.config.guild(ctx.guild).adetailer.set(new)
-        await ctx.send(f"Using embeds is now {'`disabled`' if not new else '`enabled`'}")
-
 
     @aimage.group(name="blacklist")
     async def blacklist(self, _: commands.Context):

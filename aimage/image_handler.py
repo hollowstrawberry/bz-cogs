@@ -64,19 +64,12 @@ class ImageHandler(MixinMeta):
         if response.is_nsfw and not channel.is_nsfw():
             return await send_response(context, content=f"🔞 Blocked NSFW image.", allowed_mentions=discord.AllowedMentions.none())
 
-        use_embeds = await self.config.guild(guild).use_embeds()
         id = context.id if isinstance(context, discord.Interaction) else context.message.id
-        filename = filename=f"image_{id}.{response.extension}"
-        file = discord.File(io.BytesIO(response.data or b''), filename=filename, spoiler=response.is_nsfw)
+        file = discord.File(io.BytesIO(response.data or b''), filename=f"image_{id}.{response.extension}", spoiler=response.is_nsfw)
         maxsize = await self.config.guild(guild).max_img2img()
-        content = f"*{message_content.strip()}*" if message_content and not use_embeds else None
         view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
-        embed = None
-        if use_embeds:
-            embed = discord.Embed(description=message_content, color=await self.bot.get_embed_color(context.channel))
-            embed.set_image(url=f"attachment://{filename}")
 
-        msg = await send_response(context, content=content, embed=embed, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
+        msg = await send_response(context, file=file, view=view, content=message_content, allowed_mentions=discord.AllowedMentions.none())
 
         asyncio.create_task(delete_button_after(msg))
         asyncio.create_task(self._update_autocomplete_cache(context))
