@@ -72,8 +72,7 @@ class ImageHandler(MixinMeta):
         embed = None
         if use_embeds:
             description = f"-# {message_content.strip()}" if message_content else None
-            color = await self.bot.get_embed_color(context.channel)
-            embed = discord.Embed(description=description, color=color)
+            embed = discord.Embed(description=description, color=0x393A41)
             embed.set_image(url=f"attachment://{filename}")
             message_content = None
         else:
