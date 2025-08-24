@@ -56,7 +56,7 @@ class AImage(Settings,
             "auth": None,
             "scheduler": "Automatic",
             "vip_role": -1,
-            "use_embeds": True,
+            "use_embeds": False,
         }
 
         self.session = aiohttp.ClientSession()
