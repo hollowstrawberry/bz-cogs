@@ -1,6 +1,7 @@
 import io
 import logging
 import asyncio
+import re
 import aiohttp
 import discord
 from typing import Coroutine, Optional, Union
@@ -71,12 +72,14 @@ class ImageHandler(MixinMeta):
         view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
         embed = None
         if use_embeds:
-            description = f"-# {message_content.strip()}" if message_content else None
+            # Format: multiline small text
+            description = re.sub(r"(^|\n)", r"\1-# ", message_content.strip()) if message_content else None
             embed = discord.Embed(description=description, color=0x393A41)
             embed.set_image(url=f"attachment://{filename}")
             message_content = None
-        else:
-            message_content = f"*{message_content.strip()}*" if message_content else None
+        elif message_content:
+            # Format: single line no capitalization italics
+            message_content = "*" + message_content.strip().capitalize().replace('\n', ' ') + "*"
 
         msg = await send_response(context, content=message_content, embed=embed, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
 

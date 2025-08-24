@@ -50,7 +50,7 @@ class HiresView(discord.ui.View):
         elif "ADetailer" in self.payload["alwayson_scripts"]:
             del self.payload["alwayson_scripts"]["ADetailer"]
 
-        message_content = f"Upscale requested by {interaction.user.mention} from {self.src_interaction.message.jump_url}"
+        message_content = f"Upscale of {self.src_interaction.message.jump_url}\nRequested by {interaction.user.mention}"
         await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(), message_content=message_content)
         self.src_button.disabled = True
         await asyncio.gather(self.src_interaction.message.edit(view=self.src_view),
