@@ -29,19 +29,13 @@ class ImageHandler(MixinMeta):
         assert guild and isinstance(channel, discord.TextChannel) and isinstance(user, discord.Member)
 
         prompt = params.prompt if params else payload.get("prompt", "")
-        if params and params.init_image or payload and payload.get("init_images", ""):
-            generate_method = 'generate_img2img'
-        else:
-            generate_method = 'generate_image'
-
         try:
             log.info(f"Starting generation, {prompt=}")
             self.generating[user.id] = True
             for _ in range(10):
                 try:
                     api = await self.get_api_instance(context)
-                    generate_func = getattr(api, generate_method)
-                    response: ImageResponse = await generate_func(params, payload)
+                    response: ImageResponse = await api.generate_image(params, payload)
                 except (RuntimeError, aiohttp.ClientOSError, aiohttp.ServerDisconnectedError):
                     log.info("Failed to generate, sleeping...")
                     await asyncio.sleep(5)
