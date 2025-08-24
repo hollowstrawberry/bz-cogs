@@ -72,14 +72,12 @@ class ImageHandler(MixinMeta):
         view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
         embed = None
         if use_embeds:
-            # Format: multiline small text
-            description = re.sub(r"(^|\n)", r"\1-# ", message_content.strip()) if message_content else None
+            description = "\n".join([f"-# {line.strip()}" for line in message_content.split("\n")]) if message_content else None
             embed = discord.Embed(description=description, color=0x393A41)
             embed.set_image(url=f"attachment://{filename}")
             message_content = None
         elif message_content:
-            # Format: single line no capitalization italics
-            message_content = "*" + message_content.strip().capitalize().replace('\n', ' ') + "*"
+            message_content = "\n".join([f"*{line.strip()}*" for line in message_content.split("\n")]) if message_content else None
 
         msg = await send_response(context, content=message_content, embed=embed, file=file, view=view, allowed_mentions=discord.AllowedMentions.none())
 
