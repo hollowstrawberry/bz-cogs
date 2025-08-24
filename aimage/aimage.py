@@ -170,7 +170,7 @@ class AImage(Settings,
             asyncio.create_task(self._update_autocomplete_cache(ctx))
 
         params = ImageGenParams(prompt=prompt)
-        message_content=f"Result of {ctx.message.jump_url}\nRequested by {ctx.author.mention}"
+        message_content=f"Requested by {ctx.author.mention} at {ctx.message.jump_url}"
         await self.generate_image(ctx, params=params, message_content=message_content)
 
     @app_commands.command(name="txt2img")
