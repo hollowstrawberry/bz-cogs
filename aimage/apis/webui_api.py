@@ -2,7 +2,7 @@ import base64
 import json
 import logging
 from enum import Enum
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import discord
 from redbot.core import commands
@@ -92,17 +92,17 @@ class WebuiAPI():
 
             cache[self.guild.id][cache_key] = choices
 
-    async def generate_image(self, params: ImageGenParams, payload: dict = None):
+    async def generate_image(self, params: Optional[ImageGenParams] = None, payload: Optional[dict] = None):
+        if params is None and payload is None:
+            raise ValueError("Can't generate image with no payload and no params")
         payload = payload or await self._generate_payload(params)
-        return await self._post_image_gen(payload, ImageGenerationType.TXT2IMG)
+        gen_type = ImageGenerationType.IMG2IMG if payload.get("init_images", []) else ImageGenerationType.TXT2IMG
+        return await self._post_image_gen(payload, gen_type)
 
-    async def generate_img2img(self, params: ImageGenParams, payload: dict = None):
-        init_image = params.init_image if params.init_image else None
-        payload = payload or await self._generate_payload(params, init_image)
-        return await self._post_image_gen(payload, ImageGenerationType.IMG2IMG)
-
-    async def _generate_payload(self, params: ImageGenParams, init_image: bytes = None) -> dict:
+    async def _generate_payload(self, params: Optional[ImageGenParams]) -> dict:
         assert self.guild
+        if params is None:
+            return {}
         if params.negative_prompt is None:
             params.negative_prompt = ""
         stock_negative_prompt = await self.config.guild(self.guild).negative_prompt()
@@ -141,9 +141,9 @@ class WebuiAPI():
             payload["scheduler"] = "Simple"
             payload["cfg_scale"] = 1
 
-        if init_image:
+        if params.init_image:
             payload.update({
-                "init_images": [base64.b64encode(init_image).decode("utf8")],
+                "init_images": [base64.b64encode(params.init_image).decode("utf8")],
                 "denoising_strength": params.denoising
             })
 

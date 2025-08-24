@@ -23,7 +23,6 @@ class ImageActions(discord.ui.View):
         self.channel = channel
         self.maxsize = maxsize
         self.generate_image = cog.generate_image
-        self.generate_img2img = cog.generate_img2img
 
         self.button_caption = discord.ui.Button(emoji='🔎')
         self.button_caption.callback = self.get_caption
