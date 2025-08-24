@@ -6,7 +6,7 @@ from aiohttp import ClientSession
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 
-from aimage.apis.webui_api import WebuiAPI
+from aimage.apis.base_api import BaseAPI
 
 
 class CompositeMetaClass(type(commands.Cog), type(ABC)):
@@ -26,7 +26,7 @@ class MixinMeta(ABC):
     async def generate_image(self, *args, **kwargs):
         raise NotImplementedError
 
-    async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction]) -> WebuiAPI:
+    async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction]) -> BaseAPI:
         raise NotImplementedError
 
     async def _update_autocomplete_cache(self, ctx: Union[commands.Context, discord.Interaction]):

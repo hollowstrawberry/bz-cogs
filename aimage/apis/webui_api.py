@@ -1,5 +1,5 @@
-import base64
 import json
+import base64
 import logging
 from enum import Enum
 from typing import Any, Dict, Optional, Union
@@ -9,18 +9,13 @@ from redbot.core import commands
 from tenacity import retry, stop_after_attempt, wait_random
 
 from aimage.abc import MixinMeta
+from aimage.apis.base_api import BaseAPI
 from aimage.apis.response import ImageResponse
-from aimage.common.constants import ADETAILER_ARGS, TILED_VAE_ARGS, NEVER_OOM_ARGS
+from aimage.common.constants import ADETAILER_ARGS, TILED_VAE_ARGS
 from aimage.common.helpers import get_auth
 from aimage.common.params import ImageGenParams
 
 logger = logging.getLogger("red.bz_cogs.aimage")
-
-
-class ImageGenerationType(Enum):
-    TXT2IMG = "txt2img"
-    IMG2IMG = "img2img"
-
 
 cache_mapping = {
     "upscalers": "upscalers",
@@ -58,7 +53,12 @@ A1111_SAMPLERS = [
 ]
 
 
-class WebuiAPI():
+class ImageGenerationType(Enum):
+    TXT2IMG = "txt2img"
+    IMG2IMG = "img2img"
+
+
+class WebuiAPI(BaseAPI):
     def __init__(self, cog: MixinMeta, context: Union[commands.Context, discord.Interaction]):
         self.session = cog.session
         self.config = cog.config
