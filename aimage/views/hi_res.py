@@ -31,6 +31,7 @@ class HiresView(discord.ui.View):
     @discord.ui.button(emoji='⬆', label='Upscale', style=discord.ButtonStyle.blurple, row=4) # type: ignore
     async def upscale(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.defer(thinking=True)
+        assert self.src_interaction.message
         self.payload["enable_hr"] = True
         self.payload["hr_upscaler"] = self.upscaler
         self.payload["hr_scale"] = self.scale
@@ -49,8 +50,8 @@ class HiresView(discord.ui.View):
         elif "ADetailer" in self.payload["alwayson_scripts"]:
             del self.payload["alwayson_scripts"]["ADetailer"]
 
-        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback())
-        assert self.src_interaction.message
+        message_content = f"Requested upscale by {interaction.user.mention} from {self.src_interaction.message.jump_url}"
+        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(), message_content=message_content)
         self.src_button.disabled = True
         await asyncio.gather(self.src_interaction.message.edit(view=self.src_view),
                              self.src_interaction.delete_original_response())

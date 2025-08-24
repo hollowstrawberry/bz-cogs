@@ -45,7 +45,7 @@ class ImageActions(discord.ui.View):
         self.add_item(self.button_delete)
 
     async def get_caption(self, interaction: discord.Interaction):
-        embed = await self._get_params_embed()
+        embed = await self.get_params_embed()
         if embed:
             view = ParamsView(self.info_string, interaction)
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -56,26 +56,17 @@ class ImageActions(discord.ui.View):
 
     async def regenerate_image(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
+        assert interaction.message
 
         self.payload["seed"] = -1
         self.payload["subseed"] = -1
         self.payload["subseed_strength"] = 0
 
-        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(interaction))
+        message_content = f"Requested reroll by {interaction.user.mention} from {interaction.message.jump_url}"
+        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(interaction), message_content=message_content)
 
-        assert interaction.message
         self.button_regenerate.disabled = True
         await interaction.message.edit(view=self)
-
-    async def edit_callback(self, interaction: discord.Interaction):
-        await asyncio.sleep(1)
-        assert interaction.message
-        self.button_regenerate.disabled = False
-        if not self.is_finished():
-            try:
-                await interaction.message.edit(view=self)
-            except discord.NotFound:
-                pass
 
     async def variation_image(self, interaction: discord.Interaction):
         from aimage.views.variation import VariationView
@@ -89,7 +80,7 @@ class ImageActions(discord.ui.View):
 
     async def delete_image(self, interaction: discord.Interaction):
         assert interaction.message
-        if not (await self._check_if_can_delete(interaction)):
+        if not (await self.check_if_can_delete(interaction)):
             return await interaction.response.send_message(content=":warning: Only the requester and members with `Manage Messages` permission can delete this image!", ephemeral=True)
 
         self.button_delete.disabled = True
@@ -97,9 +88,13 @@ class ImageActions(discord.ui.View):
 
         prompt = self.payload["prompt"]
         if interaction.user.id == self.og_user.id:
-            await interaction.response.send_message(f'{self.og_user.mention} deleted their requested image with prompt: `{prompt}`', allowed_mentions=discord.AllowedMentions.none(), ephemeral=True)
+            await interaction.response.send_message(f'{self.og_user.mention} deleted their requested image with prompt: `{prompt}`',
+                                                    allowed_mentions=discord.AllowedMentions.none(),
+                                                    ephemeral=True)
         else:
-            await interaction.response.send_message(f'{interaction.user.mention} deleted a image requested by {self.og_user.mention} with prompt: `{prompt}`', allowed_mentions=discord.AllowedMentions.none(), ephemeral=True)
+            await interaction.response.send_message(f'{interaction.user.mention} deleted a image requested by {self.og_user.mention} with prompt: `{prompt}`',
+                                                    allowed_mentions=discord.AllowedMentions.none(),
+                                                    ephemeral=True)
 
         self.stop()
 
@@ -124,7 +119,7 @@ class ImageActions(discord.ui.View):
                 output_dict[key] = output_dict[key][:1000] + "..."
         return output_dict
 
-    async def _get_params_embed(self) -> Optional[discord.Embed]:
+    async def get_params_embed(self) -> Optional[discord.Embed]:
         params = self.get_params_dict()
         if not params:
             return None
@@ -133,7 +128,7 @@ class ImageActions(discord.ui.View):
             embed.add_field(name=key, value=value, inline="Prompt" not in key)
         return embed
 
-    async def _check_if_can_delete(self, interaction: discord.Interaction):
+    async def check_if_can_delete(self, interaction: discord.Interaction):
         is_og_user = interaction.user.id == self.og_user.id
 
         assert interaction.guild and interaction.channel
@@ -143,3 +138,13 @@ class ImageActions(discord.ui.View):
         can_delete = await self.bot.is_owner(member) or interaction.channel.permissions_for(member).manage_messages
 
         return is_og_user or can_delete
+    
+    async def edit_callback(self, interaction: discord.Interaction):
+        await asyncio.sleep(1)
+        assert interaction.message
+        self.button_regenerate.disabled = False
+        if not self.is_finished():
+            try:
+                await interaction.message.edit(view=self)
+            except discord.NotFound:
+                pass

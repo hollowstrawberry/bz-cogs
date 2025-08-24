@@ -21,11 +21,13 @@ class ImageHandler(MixinMeta):
                                         context: Union[commands.Context, discord.Interaction],
                                         payload: dict = None,
                                         params: ImageGenParams = None,
-                                        callback: Optional[Coroutine] = None):
+                                        callback: Optional[Coroutine] = None,
+                                        message_content: Optional[str] = None):
         payload = payload or {}
         guild = context.guild
         channel = context.channel
         user = context.user if isinstance(context, discord.Interaction) else context.author
+        message_content = f"-# {message_content}" if message_content else None
         assert guild and isinstance(channel, discord.TextChannel) and isinstance(user, discord.Member)
 
         prompt = params.prompt if params else payload.get("prompt", "")
@@ -67,7 +69,7 @@ class ImageHandler(MixinMeta):
         maxsize = await self.config.guild(guild).max_img2img()
         view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
 
-        msg = await send_response(context, file=file, view=view)
+        msg = await send_response(context, file=file, view=view, content=message_content, allowed_mentions=discord.AllowedMentions.none())
 
         asyncio.create_task(delete_button_after(msg))
         asyncio.create_task(self._update_autocomplete_cache(context))

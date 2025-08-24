@@ -23,13 +23,14 @@ class VariationView(discord.ui.View):
     @discord.ui.button(emoji='🤏🏻', label='Make Variation', style=discord.ButtonStyle.blurple, row=3) # type: ignore
     async def makevariation(self, interaction: discord.Interaction, _: discord.Button):
         await interaction.response.defer(thinking=True)
+        assert self.src_interaction.message
         params = self.src_view.get_params_dict() or {}
         self.payload["seed"] = int(params["Seed"])
         self.payload["subseed"] = -1 if self.reroll else int(params["Variation seed"])
         self.payload["subseed_strength"] = self.strength
 
-        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback())
-        assert self.src_interaction.message
+        message_content = f"Requested variation by {interaction.user.mention} from {self.src_interaction.message.jump_url}"
+        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(), message_content=message_content)
         self.src_button.disabled = True
         await asyncio.gather(self.src_interaction.message.edit(view=self.src_view),
                              self.src_interaction.delete_original_response())

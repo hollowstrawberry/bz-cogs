@@ -169,7 +169,7 @@ class AImage(Settings,
             asyncio.create_task(self._update_autocomplete_cache(ctx))
 
         params = ImageGenParams(prompt=prompt)
-        await self.generate_image(ctx, params=params)
+        await self.generate_image(ctx, params=params, message_content=f"Requested by {ctx.author.mention} at {ctx.message.jump_url}")
 
     @app_commands.command(name="txt2img")
     @app_commands.describe(resolution="The dimensions of the image.",
@@ -292,7 +292,8 @@ class AImage(Settings,
                              context: Union[commands.Context, discord.Interaction],
                              payload: dict = None,
                              params: ImageGenParams = None,
-                             callback: Optional[Coroutine] = None):
+                             callback: Optional[Coroutine] = None,
+                             message_content: Optional[str] = None):
         
         if not isinstance(context, discord.Interaction):
             await context.message.add_reaction("⏳")
@@ -314,7 +315,7 @@ class AImage(Settings,
             return await send_response(context, content=":warning: Blocked prompt.")
         
         log.info(f"Queueing generation, {user.name=}")
-        self.queue_add(self._execute_image_generation(context, payload, params, callback))
+        self.queue_add(self._execute_image_generation(context, payload, params, callback, message_content))
 
     async def _contains_blacklisted_word(self, guild: discord.Guild, prompt: str):
         blacklist_regex = await self.config.guild(guild).blacklist_regex()
