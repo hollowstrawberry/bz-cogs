@@ -29,7 +29,7 @@ class VariationView(discord.ui.View):
         self.payload["subseed"] = -1 if self.reroll else int(params["Variation seed"])
         self.payload["subseed_strength"] = self.strength
 
-        message_content = f"Variation requested by {interaction.user.mention} from {self.src_interaction.message.jump_url}"
+        message_content = f"Variation of {self.src_interaction.message.jump_url} requested by {interaction.user.mention}"
         await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(), message_content=message_content)
         self.src_button.disabled = True
         await asyncio.gather(self.src_interaction.message.edit(view=self.src_view),
