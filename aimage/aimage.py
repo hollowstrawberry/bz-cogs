@@ -169,7 +169,8 @@ class AImage(Settings,
             asyncio.create_task(self._update_autocomplete_cache(ctx))
 
         params = ImageGenParams(prompt=prompt)
-        await self.generate_image(ctx, params=params, message_content=f"Requested by {ctx.author.mention} at {ctx.message.jump_url}")
+        message_content=f"Requested by {ctx.author.mention} at {ctx.message.jump_url}"
+        await self.generate_image(ctx, params=params, message_content=message_content)
 
     @app_commands.command(name="txt2img")
     @app_commands.describe(resolution="The dimensions of the image.",
