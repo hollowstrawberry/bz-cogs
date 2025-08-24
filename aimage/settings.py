@@ -317,7 +317,7 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         new = not await self.config.guild(ctx.guild).use_embeds()
-        await self.config.guild(ctx.guild).adetailer.set(new)
+        await self.config.guild(ctx.guild).use_embeds.set(new)
         await ctx.send(f"Using embeds is now {'`disabled`' if not new else '`enabled`'}")
 
 
