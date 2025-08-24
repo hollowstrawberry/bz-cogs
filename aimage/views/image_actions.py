@@ -62,7 +62,7 @@ class ImageActions(discord.ui.View):
         self.payload["subseed"] = -1
         self.payload["subseed_strength"] = 0
 
-        message_content = f"Requested reroll by {interaction.user.mention}"
+        message_content = f"Reroll requested by {interaction.user.mention}"
         await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(interaction), message_content=message_content)
 
         self.button_regenerate.disabled = True
