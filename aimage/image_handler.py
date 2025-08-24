@@ -27,7 +27,6 @@ class ImageHandler(MixinMeta):
         guild = context.guild
         channel = context.channel
         user = context.user if isinstance(context, discord.Interaction) else context.author
-        message_content = f"*{message_content.strip()}*" if message_content else None
         assert guild and isinstance(channel, discord.TextChannel) and isinstance(user, discord.Member)
 
         prompt = params.prompt if params else payload.get("prompt", "")
