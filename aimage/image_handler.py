@@ -32,7 +32,7 @@ class ImageHandler(MixinMeta):
 
         prompt = params.prompt if params else payload.get("prompt", "")
         try:
-            log.info(f"Starting generation, {prompt=}")
+            log.info(f"Starting generation")
             self.generating[user.id] = True
             for _ in range(10):
                 try:
