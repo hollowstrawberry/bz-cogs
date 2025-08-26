@@ -69,55 +69,55 @@ class HiresView(discord.ui.View):
 
 class UpscalerSelect(discord.ui.Select):
     def __init__(self, parent: HiresView, upscalers: list):
-        self.parent = parent
+        self.parent_view = parent
         options = [discord.SelectOption(label=name, default=i == 0) for i, name in enumerate(upscalers[:25])]
         super().__init__(options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        self.parent.upscaler = self.values[0]
+        self.parent_view.upscaler = self.values[0]
         for option in self.options:
             option.default = option.value == self.values[0]
-        await interaction.response.edit_message(view=self.parent)
+        await interaction.response.edit_message(view=self.parent_view)
 
 
 class ScaleSelect(discord.ui.Select):
     def __init__(self, parent: HiresView, scales: list):
-        self.parent = parent
+        self.parent_view = parent
         options = [discord.SelectOption(label=f"x{num:.2f}", value=str(num)) for num in scales]
         options[-1].default = True
         super().__init__(options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        self.parent.scale = float(self.values[0])
+        self.parent_view.scale = float(self.values[0])
         for option in self.options:
             option.default = option.value == self.values[0]
-        await interaction.response.edit_message(view=self.parent)
+        await interaction.response.edit_message(view=self.parent_view)
 
 
 class DenoisingSelect(discord.ui.Select):
     def __init__(self, parent: HiresView):
-        self.parent = parent
+        self.parent_view = parent
         options = [discord.SelectOption(label=f"Denoising: {num / 100:.2f}", value=str(num / 100), default=num == 40)
                    for num in range(0, 100, 5)]
         super().__init__(options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        self.parent.denoising = float(self.values[0])
+        self.parent_view.denoising = float(self.values[0])
         for option in self.options:
             option.default = option.value == self.values[0]
-        await interaction.response.edit_message(view=self.parent)
+        await interaction.response.edit_message(view=self.parent_view)
 
 
 class AdetailerSelect(discord.ui.Select):
     def __init__(self, parent: HiresView):
-        self.parent = parent
+        self.parent_view = parent
         super().__init__(options=[
             discord.SelectOption(label="ADetailer Enabled", value=str(1), default=True),
             discord.SelectOption(label="ADetailer Disabled", value=str(0)),
         ])
 
     async def callback(self, interaction: discord.Interaction):
-        self.parent.adetailer = bool(int(self.values[0]))
+        self.parent_view.adetailer = bool(int(self.values[0]))
         for option in self.options:
             option.default = option.value == self.values[0]
-        await interaction.response.edit_message(view=self.parent)
+        await interaction.response.edit_message(view=self.parent_view)
