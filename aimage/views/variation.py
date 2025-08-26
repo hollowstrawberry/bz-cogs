@@ -48,28 +48,28 @@ class VariationView(discord.ui.View):
 
 class VariationStrengthSelect(discord.ui.Select):
     def __init__(self, parent: VariationView):
-        self.parent = parent
+        self.parent_view = parent
         default = round(parent.strength * 100)
         options = [discord.SelectOption(label=f"Strength: {num}%", value=str(num), default=num==default)
                    for num in range(1, 21)]
         super().__init__(options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        self.parent.strength = float(self.values[0]) / 100
+        self.parent_view.strength = float(self.values[0]) / 100
         for option in self.options:
             option.default = option.value == self.values[0]
-        await interaction.response.edit_message(view=self.parent)
+        await interaction.response.edit_message(view=self.parent_view)
 
 
 class VariationTypeSelect(discord.ui.Select):
     def __init__(self, parent: VariationView,):
-        self.parent = parent
+        self.parent_view = parent
         options = [discord.SelectOption(label=f"Reroll subseed", value="1", default=True),
                    discord.SelectOption(label=f"Keep subseed", value="0")]
         super().__init__(options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        self.parent.reroll = bool(int(self.values[0]))
+        self.parent_view.reroll = bool(int(self.values[0]))
         for option in self.options:
             option.default = option.value == self.values[0]
-        await interaction.response.edit_message(view=self.parent)
+        await interaction.response.edit_message(view=self.parent_view)
