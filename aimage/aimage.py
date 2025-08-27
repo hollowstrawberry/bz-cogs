@@ -58,14 +58,16 @@ class AImage(Settings,
             "vip_role": -1,
         }
 
+        default_member = {
+            "checkpoint": "",
+        }
+
         self.session = aiohttp.ClientSession()
         self.generating = defaultdict(lambda: False)
         self.autocomplete_cache = defaultdict(dict)
 
         self.config.register_guild(**default_guild)
-
-    async def red_delete_data_for_user(self, **kwargs):
-        return
+        self.config.register_member(**default_member)
 
     async def cog_unload(self):
         await self.session.close()

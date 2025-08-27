@@ -115,6 +115,10 @@ class WebuiAPI(BaseAPI):
         if "masterpiece" not in params.prompt and "best quality" not in params.prompt:
             params.prompt = "masterpiece, best quality, " + params.prompt
 
+        member = self.context.user if isinstance(self.context, discord.Interaction) else self.context.author
+        assert isinstance(member, discord.Member)
+        checkpoint = params.checkpoint or await self.config.member(member).checkpoint() or await self.config.guild(self.guild).checkpoint() or ""
+
         payload: Dict[str, Any] = {
             "prompt": f"{params.prompt} {params.lora}",
             "negative_prompt": params.negative_prompt,
@@ -127,7 +131,7 @@ class WebuiAPI(BaseAPI):
             "sampler_name": params.sampler or await self.config.guild(self.guild).sampler(),
             "scheduler": params.scheduler or await self.config.guild(self.guild).scheduler(),
             "override_settings": {
-                "sd_model_checkpoint": params.checkpoint or await self.config.guild(self.guild).checkpoint(),
+                "sd_model_checkpoint": checkpoint,
                 "sd_vae": params.vae or await self.config.guild(self.guild).vae()
             },
             "width": params.width or await self.config.guild(self.guild).width(),

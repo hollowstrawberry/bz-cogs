@@ -30,7 +30,6 @@ class ImageHandler(MixinMeta):
         message_content = f"-# {message_content.strip()}" if message_content else None
         assert guild and isinstance(channel, discord.TextChannel) and isinstance(user, discord.Member)
 
-        prompt = params.prompt if params else payload.get("prompt", "")
         try:
             log.info(f"Starting generation")
             self.generating[user.id] = True

@@ -11,6 +11,39 @@ from aimage.common.helpers import delete_button_after
 
 class Settings(MixinMeta):
 
+    @commands.command(name="ckpt") # type: ignore
+    async def member_checkpoint(self, ctx: commands.Context, *, checkpoint: Optional[str]):
+        """
+        Set the default checkpoint for yourself in this guild.
+        """
+        assert ctx.guild and isinstance(ctx.author, discord.Member)
+
+        if checkpoint is None:
+            checkpoint = await self.config.member(ctx.author).checkpoint()
+            return await ctx.send(f"Your current default checkpoint is `{checkpoint or '(None)'}`")
+
+        if checkpoint.lower().strip() in ("clear", "reset", "default"):
+            return await self.config.member(ctx.author).checkpoint.set("")
+
+        await ctx.message.add_reaction("🔄")
+        await self._update_autocomplete_cache(ctx)
+        data = self.autocomplete_cache[ctx.guild.id].get("checkpoints") or []
+        await ctx.message.remove_reaction("🔄", ctx.me)
+        
+        if checkpoint not in data:
+            checkpoints = []
+            remaining_length = 1900
+            for cp in data:
+                if len(cp) + 2 <= remaining_length:
+                    checkpoints.append(cp)
+                    remaining_length -= (len(cp) + 2)
+                else:
+                    break
+            return await ctx.send(f":warning: Invalid checkpoint. Pick one of these:`\n{', '.join(checkpoints)}`")
+
+        await self.config.member(ctx.author).checkpoint.set(checkpoint)
+        await ctx.tick(message="✅ Default checkpoint updated.")
+
     @commands.group(name="aimage") # type: ignore
     @commands.guild_only()
     @checks.bot_has_permissions(embed_links=True, add_reactions=True)
