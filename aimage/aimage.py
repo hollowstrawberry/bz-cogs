@@ -206,7 +206,7 @@ class AImage(Settings,
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
         if not await self._can_run_command(ctx, "txt2img"):
-            return await interaction.followup.send("You do not have permission to do this.", ephemeral=True)
+            return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
 
         width, height = tuple(int(x) for x in resolution.split("x"))
 
@@ -257,7 +257,7 @@ class AImage(Settings,
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
         if not await self._can_run_command(ctx, "txt2img"):
-            return await interaction.followup.send("You do not have permission to do this.", ephemeral=True)
+            return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
 
         assert ctx.guild and image.content_type
         if not image.content_type.startswith("image/"):
