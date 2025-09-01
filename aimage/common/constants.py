@@ -26,7 +26,7 @@ ADETAILER_ARGS = {
                 "ad_controlnet_model" : "None",
                 "ad_controlnet_module" : "None",
                 "ad_controlnet_weight" : 1,
-                "ad_denoising_strength" : 0.4,
+                "ad_denoising_strength" : 0.3,
                 "ad_dilate_erode" : 4,
                 "ad_inpaint_height" : 512,
                 "ad_inpaint_only_masked" : True,
