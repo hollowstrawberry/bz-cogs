@@ -19,7 +19,7 @@ class HiresView(discord.ui.View):
         maxscale = ((maxsize*maxsize) / (self.payload["width"]*self.payload["height"]))**0.5
         scales = [num/100 for num in range(100, min(max(int(maxscale * 100) + 1, 101), 201), 25)]
         self.upscaler = upscalers[0]
-        self.scale = scales[-1]
+        self.scale = 1.5 if 1.5 in scales else scales[-1]
         self.denoising = 0.5
         self.adetailer = "adetailer" in parent.cache[interaction.guild.id].get("scripts", [])
         self.add_item(UpscalerSelect(self, upscalers))
@@ -83,8 +83,7 @@ class UpscalerSelect(discord.ui.Select):
 class ScaleSelect(discord.ui.Select):
     def __init__(self, parent: HiresView, scales: list):
         self.parent_view = parent
-        options = [discord.SelectOption(label=f"x{num:.2f}", value=str(num)) for num in scales]
-        options[-1].default = True
+        options = [discord.SelectOption(label=f"x{num:.2f}", value=str(num), default=num==parent.scale) for num in scales]
         super().__init__(options=options)
 
     async def callback(self, interaction: discord.Interaction):
