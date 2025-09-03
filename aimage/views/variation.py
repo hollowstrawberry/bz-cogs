@@ -1,75 +1,72 @@
 import asyncio
 import discord
-from copy import copy
+import discord.ui as ui
+from copy import deepcopy
 
 from aimage.views.image_actions import ImageActions
 
 
-class VariationView(discord.ui.View):
-    def __init__(self, parent: ImageActions, interaction: discord.Interaction):
-        super().__init__()
-        self.src_view = parent
-        self.src_interaction = interaction
-        self.src_button = parent.button_variation
-        self.payload = copy(parent.payload)
-        self.generate_image = parent.generate_image
-        self.reroll = True
-        self.strength = 0.05
+class VariationModal(ui.Modal):
+    def __init__(self, parent_view: ImageActions, parent_interaction: discord.Interaction):
+        super().__init__(title="Make image variation")
+        self.parent_view = parent_view
+        self.parent_interaction = parent_interaction
+        self.parent_button = parent_view.button_variation
+        self.payload = deepcopy(parent_view.payload)
+        self.generate_image = parent_view.generate_image
+
+        default_strength = 5
         if self.payload.get("subseed_strength", 0) > 0:
-            self.strength = self.payload.get("subseed_strength", 0)
-            self.add_item(VariationTypeSelect(self))
-        self.add_item(VariationStrengthSelect(self))
+            default_strength = round(self.payload.get("subseed_strength", 0) * 100)
 
-    @discord.ui.button(emoji='🤏🏻', label='Make Variation', style=discord.ButtonStyle.blurple, row=3) # type: ignore
-    async def makevariation(self, interaction: discord.Interaction, _: discord.Button):
+        self.subseed_select = ui.Label(
+            text="Subseed",
+            description="Keeping the subseed while changing the strength may offer finer tuning.",
+            component=ui.Select(options=[
+                discord.SelectOption(label=f"Reroll subseed", value="1", default=True),
+                discord.SelectOption(label=f"Keep subseed", value="0")
+            ])
+        )
+        self.variation_select = ui.Label(
+            text="Strength",
+            description="How strong the change should be compared to the original image.",
+            component=ui.Select(options=[
+                discord.SelectOption(label=f"{num}%", value=str(num), default=num==default_strength)
+                for num in range(1, 26)
+            ])
+        )
+
+        if self.payload.get("subseed_strength", 0) > 0:
+            self.add_item(self.subseed_select)
+        self.add_item(self.variation_select)
+
+
+    async def on_submit(self, interaction: discord.Interaction):
+        assert self.parent_interaction.message
+        assert isinstance(self.subseed_select.component, discord.ui.Select)
+        assert isinstance(self.variation_select.component, discord.ui.Select)
+
+        reroll = bool(int(self.subseed_select.component.values[0]))
+        strength = 100 * float(self.variation_select.component.values[0])
+        params = self.parent_view.get_params_dict() or {}
+        self.payload["seed"] = int(params.get("Seed", -1))
+        self.payload["subseed"] = -1 if reroll else int(params.get("Variation seed", -1))
+        self.payload["subseed_strength"] = strength
+
         await interaction.response.defer(thinking=True)
-        assert self.src_interaction.message
-        params = self.src_view.get_params_dict() or {}
-        self.payload["seed"] = int(params["Seed"])
-        self.payload["subseed"] = -1 if self.reroll else int(params["Variation seed"])
-        self.payload["subseed_strength"] = self.strength
-
-        message_content = f"Variation of {self.src_interaction.message.jump_url} requested by {interaction.user.mention}"
+        message_content = f"Requested by {interaction.user.mention}"
         await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(), message_content=message_content)
-        self.src_button.disabled = True
-        await asyncio.gather(self.src_interaction.message.edit(view=self.src_view),
-                             self.src_interaction.delete_original_response())
+        
+        self.parent_button.disabled = True
+        await self.parent_interaction.message.edit(view=self.parent_view)
+
 
     async def edit_callback(self):
         await asyncio.sleep(1)
-        assert self.src_interaction.message
-        self.src_button.disabled = False
-        if not self.src_view.is_finished():
+        assert self.parent_interaction.message
+        self.parent_button.disabled = False
+        if not self.parent_view.is_finished():
             try:
-                await self.src_interaction.message.edit(view=self.src_view)
+                await self.parent_interaction.message.edit(view=self.parent_view)
             except discord.NotFound:
                 pass
-
-
-class VariationStrengthSelect(discord.ui.Select):
-    def __init__(self, parent: VariationView):
-        self.parent_view = parent
-        default = round(parent.strength * 100)
-        options = [discord.SelectOption(label=f"Strength: {num}%", value=str(num), default=num==default)
-                   for num in range(1, 21)]
-        super().__init__(options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        self.parent_view.strength = float(self.values[0]) / 100
-        for option in self.options:
-            option.default = option.value == self.values[0]
-        await interaction.response.edit_message(view=self.parent_view)
-
-
-class VariationTypeSelect(discord.ui.Select):
-    def __init__(self, parent: VariationView,):
-        self.parent_view = parent
-        options = [discord.SelectOption(label=f"Reroll subseed", value="1", default=True),
-                   discord.SelectOption(label=f"Keep subseed", value="0")]
-        super().__init__(options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        self.parent_view.reroll = bool(int(self.values[0]))
-        for option in self.options:
-            option.default = option.value == self.values[0]
-        await interaction.response.edit_message(view=self.parent_view)

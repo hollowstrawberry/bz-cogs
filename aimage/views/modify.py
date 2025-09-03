@@ -1,15 +1,12 @@
 import asyncio
 import discord
 import discord.ui as ui
-import logging
 from copy import deepcopy
 
 from aimage.views.image_actions import ImageActions
 
-log = logging.getLogger("red.bz_cogs.aimage")
 
-
-class PromptModal(ui.Modal):
+class ModifyModal(ui.Modal):
     def __init__(self, parent_view: ImageActions, parent_interaction: discord.Interaction):
         super().__init__(title="Generate new image")
         self.parent_view = parent_view
@@ -34,36 +31,38 @@ class PromptModal(ui.Modal):
                 min_length=0
             )
         )
-        self.seed_edit = ui.Label(
+        self.seed_select = ui.Label(
             text="Seed",
-            component=ui.Select(
-                options=[
-                    discord.SelectOption(label="Reroll image", value="1", default=True),
-                    discord.SelectOption(label="Keep image", value="0"),
-                ]
-            )
+            description="You can make a new image or modify the current image.",
+            component=ui.Select(options=[
+                discord.SelectOption(label="Reroll image", value="1", default=True),
+                discord.SelectOption(label="Keep image", value="0"),
+            ])
         )
 
         self.add_item(self.prompt_edit)
         self.add_item(self.negative_prompt_edit)
-        self.add_item(self.seed_edit)
+        self.add_item(self.seed_select)
         
 
     async def on_submit(self, interaction: discord.Interaction):
         assert self.parent_interaction.message
         assert isinstance(self.prompt_edit.component, discord.ui.TextInput)
         assert isinstance(self.negative_prompt_edit.component, discord.ui.TextInput)
-        assert isinstance(self.seed_edit.component, discord.ui.Select)
+        assert isinstance(self.seed_select.component, discord.ui.Select)
 
         self.payload["prompt"] = self.prompt_edit.component.value
         self.payload["negative_prompt"] = self.negative_prompt_edit.component.value
 
-        # reroll seed
-        log.info(f"{self.seed_edit.component.values=}")
-        if bool(int(self.seed_edit.component.values[0])):
+        if bool(int(self.seed_select.component.values[0])):
             self.payload["seed"] = -1
             self.payload["subseed"] = -1
             self.payload["subseed_strength"] = 0
+        else:
+            params = self.parent_view.get_params_dict() or {}
+            self.payload["seed"] = int(params.get("Seed", -1))
+            self.payload["subseed"] = int(params.get("Variation seed", -1))
+            self.payload["subseed_strength"] = float(params.get("Variation seed strength", 0))
 
         await interaction.response.defer(thinking=True)
         message_content = f"Requested by {interaction.user.mention}"

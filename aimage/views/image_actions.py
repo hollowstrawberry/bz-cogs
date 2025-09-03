@@ -28,7 +28,7 @@ class ImageActions(discord.ui.View):
         self.button_caption.callback = self.get_caption
         self.button_modify = discord.ui.Button(emoji="🔄")
         self.button_modify.callback = self.modify_image
-        self.button_variation = discord.ui.Button(emoji='🤏🏻')
+        self.button_variation = discord.ui.Button(emoji='⏺️')
         self.button_variation.callback = self.variation_image
         self.button_upscale = discord.ui.Button(emoji='⬆')
         self.button_upscale.callback = self.upscale_image
@@ -44,6 +44,7 @@ class ImageActions(discord.ui.View):
                 self.add_item(self.button_upscale)
         self.add_item(self.button_delete)
 
+
     async def get_caption(self, interaction: discord.Interaction):
         embed = await self.get_params_embed()
         if embed:
@@ -54,19 +55,24 @@ class ImageActions(discord.ui.View):
         else:
             await interaction.response.send_message(f'Parameters for this image:\n```yaml\n{self.info_string}```')
 
+
     async def modify_image(self, interaction: discord.Interaction):
-        from aimage.views.prompt_modal import PromptModal
-        await interaction.response.send_modal(PromptModal(self, interaction))
+        from aimage.views.modify import ModifyModal
+        modal = ModifyModal(self, interaction)
+        await interaction.response.send_modal(modal)
+
 
     async def variation_image(self, interaction: discord.Interaction):
-        from aimage.views.variation import VariationView
-        view = VariationView(self, interaction)
-        await interaction.response.send_message(view=view, ephemeral=True)
+        from aimage.views.variation import VariationModal
+        modal = VariationModal(self, interaction)
+        await interaction.response.send_modal(modal)
+
 
     async def upscale_image(self, interaction: discord.Interaction):
-        from aimage.views.hi_res import HiresView
-        view = HiresView(self, interaction, self.maxsize)
-        await interaction.response.send_message(view=view, ephemeral=True)
+        from aimage.views.hi_res import HiresModal
+        modal = HiresModal(self, interaction, self.maxsize)
+        await interaction.response.send_modal(modal)
+
 
     async def delete_image(self, interaction: discord.Interaction):
         assert interaction.message
@@ -78,15 +84,18 @@ class ImageActions(discord.ui.View):
 
         prompt = self.payload["prompt"]
         if interaction.user.id == self.og_user.id:
-            await interaction.response.send_message(f'{self.og_user.mention} deleted their requested image with prompt: `{prompt}`',
-                                                    allowed_mentions=discord.AllowedMentions.none(),
-                                                    ephemeral=True)
+            await interaction.response.send_message(
+                f'{self.og_user.mention} deleted their requested image with prompt: `{prompt}`',
+                allowed_mentions=discord.AllowedMentions.none(),
+                ephemeral=True)
         else:
-            await interaction.response.send_message(f'{interaction.user.mention} deleted a image requested by {self.og_user.mention} with prompt: `{prompt}`',
-                                                    allowed_mentions=discord.AllowedMentions.none(),
-                                                    ephemeral=True)
+            await interaction.response.send_message(
+                f'{interaction.user.mention} deleted a image requested by {self.og_user.mention} with prompt: `{prompt}`',
+                allowed_mentions=discord.AllowedMentions.none(),
+                ephemeral=True)
 
         self.stop()
+
 
     def get_params_dict(self) -> Optional[dict]:
         if "Steps: " not in self.info_string:
@@ -109,6 +118,7 @@ class ImageActions(discord.ui.View):
                 output_dict[key] = output_dict[key][:1000] + "..."
         return output_dict
 
+
     async def get_params_embed(self) -> Optional[discord.Embed]:
         params = self.get_params_dict()
         if not params:
@@ -117,6 +127,7 @@ class ImageActions(discord.ui.View):
         for key, value in params.items():
             embed.add_field(name=key, value=value, inline="Prompt" not in key)
         return embed
+
 
     async def check_if_can_delete(self, interaction: discord.Interaction):
         is_og_user = interaction.user.id == self.og_user.id
