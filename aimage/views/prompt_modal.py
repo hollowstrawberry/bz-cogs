@@ -1,9 +1,12 @@
 import asyncio
 import discord
 import discord.ui as ui
+import logging
 from copy import deepcopy
 
 from aimage.views.image_actions import ImageActions
+
+log = logging.getLogger("red.bz_cogs.aimage")
 
 
 class PromptModal(ui.Modal):
@@ -56,6 +59,7 @@ class PromptModal(ui.Modal):
         self.payload["negative_prompt"] = self.negative_prompt_edit.component.value
 
         # reroll seed
+        log.info(f"{self.seed_edit.component.values=}")
         if bool(int(self.seed_edit.component.values[0])):
             self.payload["seed"] = -1
             self.payload["subseed"] = -1
