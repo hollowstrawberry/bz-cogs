@@ -7,10 +7,9 @@ from aimage.views.image_actions import ImageActions
 
 
 class ModifyModal(ui.Modal):
-    def __init__(self, parent_view: ImageActions, parent_interaction: discord.Interaction):
+    def __init__(self, parent_view: ImageActions):
         super().__init__(title="Image Generation")
         self.parent_view = parent_view
-        self.parent_interaction = parent_interaction
         self.parent_button = parent_view.button_modify
         self.payload = deepcopy(parent_view.payload)
         self.generate_image = parent_view.generate_image
@@ -46,7 +45,6 @@ class ModifyModal(ui.Modal):
         
 
     async def on_submit(self, interaction: discord.Interaction):
-        assert self.parent_interaction.message
         assert isinstance(self.prompt_edit.component, discord.ui.TextInput)
         assert isinstance(self.negative_prompt_edit.component, discord.ui.TextInput)
         assert isinstance(self.seed_select.component, discord.ui.Select)
@@ -67,18 +65,4 @@ class ModifyModal(ui.Modal):
 
         await interaction.response.defer(thinking=True)
         message_content = f"Reroll requested by {interaction.user.mention}" if same_prompt else f"Change requested by {interaction.user.mention}"
-        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(), message_content=message_content)
-
-        self.parent_button.disabled = True
-        await self.parent_interaction.message.edit(view=self.parent_view)
-
-
-    async def edit_callback(self):
-        await asyncio.sleep(1)
-        assert self.parent_interaction.message
-        self.parent_button.disabled = False
-        if not self.parent_view.is_finished():
-            try:
-                await self.parent_interaction.message.edit(view=self.parent_view)
-            except discord.NotFound:
-                pass
+        await self.generate_image(interaction, payload=self.payload, message_content=message_content)

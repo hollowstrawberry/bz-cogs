@@ -58,13 +58,13 @@ class ImageActions(discord.ui.View):
 
     async def modify_image(self, interaction: discord.Interaction):
         from aimage.views.modify import ModifyModal
-        modal = ModifyModal(self, interaction)
+        modal = ModifyModal(self)
         await interaction.response.send_modal(modal)
 
 
     async def variation_image(self, interaction: discord.Interaction):
         from aimage.views.variation import VariationModal
-        modal = VariationModal(self, interaction)
+        modal = VariationModal(self)
         await interaction.response.send_modal(modal)
 
 
