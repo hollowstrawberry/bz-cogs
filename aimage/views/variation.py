@@ -54,7 +54,7 @@ class VariationModal(ui.Modal):
         self.payload["subseed_strength"] = strength
 
         await interaction.response.defer(thinking=True)
-        message_content = f"Requested by {interaction.user.mention}"
+        message_content = f"Variation requested by {interaction.user.mention}"
         await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(), message_content=message_content)
         
         self.parent_button.disabled = True
