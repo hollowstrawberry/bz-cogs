@@ -9,7 +9,7 @@ from aimage.views.image_actions import ImageActions
 
 class HiresModal(ui.Modal):
     def __init__(self, parent_view: ImageActions, parent_interaction: discord.Interaction, maxsize: int):
-        super().__init__(title="Upscale image")
+        super().__init__(title="Upscale Image")
         assert parent_interaction.guild
         self.parent_view = parent_view
         self.parent_interaction = parent_interaction
@@ -77,7 +77,7 @@ class HiresModal(ui.Modal):
         self.payload["hr_negative_prompt"] = self.payload["negative_prompt"]
         self.payload["hr_resize_x"] = 0
         self.payload["hr_resize_y"] = 0
-        
+
         params = self.parent_view.get_params_dict() or {}
         self.payload["seed"] = int(params["Seed"])
         self.payload["subseed"] = int(params.get("Variation seed", -1))

@@ -8,7 +8,7 @@ from aimage.views.image_actions import ImageActions
 
 class ModifyModal(ui.Modal):
     def __init__(self, parent_view: ImageActions, parent_interaction: discord.Interaction):
-        super().__init__(title="Generate new image")
+        super().__init__(title="Image Generation")
         self.parent_view = parent_view
         self.parent_interaction = parent_interaction
         self.parent_button = parent_view.button_modify
