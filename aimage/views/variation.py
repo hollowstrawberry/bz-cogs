@@ -46,7 +46,7 @@ class VariationModal(ui.Modal):
         assert isinstance(self.subseed_select.component, discord.ui.Select)
         assert isinstance(self.variation_select.component, discord.ui.Select)
 
-        reroll = bool(int(self.subseed_select.component.values[0]))
+        reroll = bool(int(self.subseed_select.component.values[0])) if self.subseed_select.component.values else True
         strength = 100 * float(self.variation_select.component.values[0])
         params = self.parent_view.get_params_dict() or {}
         self.payload["seed"] = int(params.get("Seed", -1))

@@ -24,7 +24,7 @@ class ModifyModal(ui.Modal):
             )
         )
         self.negative_prompt_edit = ui.Label(
-            text="Prompt",
+            text="Negative Prompt",
             component=ui.TextInput(
                 style=discord.TextStyle.long,
                 default=self.payload["negative_prompt"],
