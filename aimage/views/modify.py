@@ -48,12 +48,12 @@ class ModifyModal(ui.Modal):
         assert isinstance(self.prompt_edit.component, discord.ui.TextInput)
         assert isinstance(self.negative_prompt_edit.component, discord.ui.TextInput)
         assert isinstance(self.seed_select.component, discord.ui.Select)
-
-        same_prompt = self.prompt_edit.component.value == self.payload["prompt"] and self.negative_prompt_edit.component.value == self.payload["negative_prompt"]
+        
         self.payload["prompt"] = self.prompt_edit.component.value
         self.payload["negative_prompt"] = self.negative_prompt_edit.component.value
 
-        if bool(int(self.seed_select.component.values[0])):
+        reroll = bool(int(self.seed_select.component.values[0]))
+        if reroll:
             self.payload["seed"] = -1
             self.payload["subseed"] = -1
             self.payload["subseed_strength"] = 0
@@ -64,5 +64,5 @@ class ModifyModal(ui.Modal):
             self.payload["subseed_strength"] = float(params.get("Variation seed strength", 0))
 
         await interaction.response.defer(thinking=True)
-        message_content = f"Reroll requested by {interaction.user.mention}" if same_prompt else f"Change requested by {interaction.user.mention}"
+        message_content = f"Reroll requested by {interaction.user.mention}" if reroll else f"Change requested by {interaction.user.mention}"
         await self.generate_image(interaction, payload=self.payload, message_content=message_content)
