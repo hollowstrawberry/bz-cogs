@@ -26,6 +26,8 @@ class ImageActions(discord.ui.View):
 
         self.button_caption = discord.ui.Button(emoji='🔎')
         self.button_caption.callback = self.get_caption
+        self.button_modify = discord.ui.Button(emoji="🖐🏻")
+        self.button_modify.callback = self.modify_prompt
         self.button_regenerate = discord.ui.Button(emoji='🔄')
         self.button_regenerate.callback = self.regenerate_image
         self.button_variation = discord.ui.Button(emoji='🤏🏻')
@@ -35,7 +37,8 @@ class ImageActions(discord.ui.View):
         self.button_delete = discord.ui.Button(emoji='🗑️')
         self.button_delete.callback = self.delete_image
 
-        self.add_item(self.button_caption)
+        #self.add_item(self.button_caption)
+        self.add_item(self.button_modify)
         if not payload.get("enable_hr", False):
             self.add_item(self.button_regenerate)
             self.add_item(self.button_variation)
@@ -53,6 +56,11 @@ class ImageActions(discord.ui.View):
             asyncio.create_task(delete_button_after(msg))
         else:
             await interaction.response.send_message(f'Parameters for this image:\n```yaml\n{self.info_string}```')
+
+    async def modify_prompt(self, interaction: discord.Interaction):
+        from aimage.views.prompt_modal import PromptModal
+        modal = PromptModal(self, interaction, self.payload["prompt"], self.payload["negative_prompt"])
+        await interaction.response.send_modal(modal)
 
     async def regenerate_image(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
