@@ -35,8 +35,8 @@ class PromptModal(ui.Modal):
             text="Seed",
             component=ui.Select(
                 options=[
-                    discord.SelectOption(label="Reroll image", value="True", default=True),
-                    discord.SelectOption(label="Keep image", value="False"),
+                    discord.SelectOption(label="Reroll image", value="1", default=True),
+                    discord.SelectOption(label="Keep image", value="0"),
                 ]
             )
         )
@@ -56,7 +56,7 @@ class PromptModal(ui.Modal):
         self.payload["negative_prompt"] = self.negative_prompt_edit.component.value
 
         # reroll seed
-        if bool(self.seed_edit.component.values[0]):
+        if bool(int(self.seed_edit.component.values[0])):
             self.payload["seed"] = -1
             self.payload["subseed"] = -1
             self.payload["subseed_strength"] = 0
