@@ -26,10 +26,8 @@ class ImageActions(discord.ui.View):
 
         self.button_caption = discord.ui.Button(emoji='🔎')
         self.button_caption.callback = self.get_caption
-        self.button_modify = discord.ui.Button(emoji="🖐🏻")
-        self.button_modify.callback = self.modify_prompt
-        self.button_regenerate = discord.ui.Button(emoji='🔄')
-        self.button_regenerate.callback = self.regenerate_image
+        self.button_modify = discord.ui.Button(emoji="🔄")
+        self.button_modify.callback = self.modify_image
         self.button_variation = discord.ui.Button(emoji='🤏🏻')
         self.button_variation.callback = self.variation_image
         self.button_upscale = discord.ui.Button(emoji='⬆')
@@ -37,10 +35,9 @@ class ImageActions(discord.ui.View):
         self.button_delete = discord.ui.Button(emoji='🗑️')
         self.button_delete.callback = self.delete_image
 
-        #self.add_item(self.button_caption)
-        self.add_item(self.button_modify)
+        self.add_item(self.button_caption)
         if not payload.get("enable_hr", False):
-            self.add_item(self.button_regenerate)
+            self.add_item(self.button_modify)
             self.add_item(self.button_variation)
             if not payload.get("init_images", []) and "AI Horde" not in self.info_string \
                     and self.payload["width"]*self.payload["height"]*1.1 < maxsize*maxsize:
@@ -57,24 +54,9 @@ class ImageActions(discord.ui.View):
         else:
             await interaction.response.send_message(f'Parameters for this image:\n```yaml\n{self.info_string}```')
 
-    async def modify_prompt(self, interaction: discord.Interaction):
+    async def modify_image(self, interaction: discord.Interaction):
         from aimage.views.prompt_modal import PromptModal
-        modal = PromptModal(self, interaction, self.payload["prompt"], self.payload["negative_prompt"])
-        await interaction.response.send_modal(modal)
-
-    async def regenerate_image(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
-        assert interaction.message
-
-        self.payload["seed"] = -1
-        self.payload["subseed"] = -1
-        self.payload["subseed_strength"] = 0
-
-        message_content = f"Reroll requested by {interaction.user.mention}"
-        await self.generate_image(interaction, payload=self.payload, callback=self.edit_callback(interaction), message_content=message_content)
-
-        self.button_regenerate.disabled = True
-        await interaction.message.edit(view=self)
+        await interaction.response.send_modal(PromptModal(self, interaction))
 
     async def variation_image(self, interaction: discord.Interaction):
         from aimage.views.variation import VariationView
@@ -146,13 +128,3 @@ class ImageActions(discord.ui.View):
         can_delete = await self.bot.is_owner(member) or interaction.channel.permissions_for(member).manage_messages
 
         return is_og_user or can_delete
-    
-    async def edit_callback(self, interaction: discord.Interaction):
-        await asyncio.sleep(1)
-        assert interaction.message
-        self.button_regenerate.disabled = False
-        if not self.is_finished():
-            try:
-                await interaction.message.edit(view=self)
-            except discord.NotFound:
-                pass
