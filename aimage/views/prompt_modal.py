@@ -18,7 +18,6 @@ class PromptModal(ui.Modal):
         self.prompt_edit = ui.Label(
             text="Prompt",
             component=ui.TextInput(
-                label="Prompt",
                 style=discord.TextStyle.long,
                 default=self.payload["prompt"],
                 min_length=4
@@ -27,10 +26,9 @@ class PromptModal(ui.Modal):
         self.negative_prompt_edit = ui.Label(
             text="Prompt",
             component=ui.TextInput(
-                label="Negative Prompt",
                 style=discord.TextStyle.long,
                 default=self.payload["negative_prompt"],
-                min_length=4
+                min_length=0
             )
         )
         self.seed_edit = ui.Label(
