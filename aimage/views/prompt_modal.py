@@ -5,6 +5,7 @@ from aimage.views.image_actions import ImageActions
 
 class PromptModal(discord.ui.Modal):
     def __init__(self, parent: ImageActions, interaction: discord.Interaction, prompt: str, negative_prompt: str):
+        super().__init__()
         self.src_view = parent
         self.src_interaction = interaction
         self.title = "Modify Prompt"
