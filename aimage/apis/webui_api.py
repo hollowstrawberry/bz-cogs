@@ -4,6 +4,7 @@ import logging
 from enum import Enum
 from typing import Any, Dict, Optional, Union
 
+import aiohttp
 import discord
 from redbot.core import commands
 from tenacity import retry, stop_after_attempt, wait_random
@@ -194,3 +195,11 @@ class WebuiAPI(BaseAPI):
         url = self.endpoint + page
         async with self.session.get(url=url, auth=self.auth, raise_for_status=True) as response:
             return await response.json()
+    
+    async def force_close(self):
+        url = self.endpoint + "force_close"
+        try:
+            async with self.session.post(url=url, auth=self.auth, raise_for_status=True):
+                return True
+        except aiohttp.ClientError:
+            return False

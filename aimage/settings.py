@@ -6,6 +6,7 @@ from redbot.core import checks, commands
 from redbot.core.utils.menus import SimpleMenu # type: ignore
 
 from aimage.abc import MixinMeta
+from aimage.apis.webui_api import WebuiAPI
 from aimage.common.helpers import delete_button_after
 
 
@@ -141,10 +142,24 @@ class Settings(MixinMeta):
         elif value < -0.2 or value > 0.2:
             await ctx.send(f"Valid values are between -0.2 and 0.2")
         else:
-            await self.config.guild(ctx.guild).nsfw_tuning.set(value)
-            await ctx.send(f"The sensitivity is currently set to `{value:.3f}`"
-                           "\nNote that you need [the updated CensorScript.py](<https://github.com/hollowstrawberry/sd-webui-nsfw-checker>) in your A1111 to use this.")
+            await self._update_autocomplete_cache(ctx)
+            data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
+            if "censorscript" not in data:
+                await ctx.send("You need [the updated CensorScript.py](<https://github.com/hollowstrawberry/sd-webui-nsfw-checker>) in your A1111 to use this.")
+            else:
+                await self.config.guild(ctx.guild).nsfw_tuning.set(value)
+                await ctx.send(f"The sensitivity is now set to `{value:.3f}`")
 
+    @aimage.command(name="forceclose")
+    async def forceclose(self, ctx: commands.Context):
+        """
+        Sends a signal to force close the webui. Needs this extension to work: https://github.com/hollowstrawberry/sd-webui-force-close
+        """
+        instance = WebuiAPI(self, ctx)
+        if await instance.force_close():
+            await ctx.tick(message="✅ Force close initiated.")
+        else:
+            await ctx.reply("Force close did not work.")
 
     @aimage.command(name="negative_prompt")
     async def negative_prompt(self, ctx: commands.Context, *, negative_prompt: Optional[str]):

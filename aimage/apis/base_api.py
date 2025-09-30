@@ -21,3 +21,6 @@ class BaseAPI():
 
     async def generate_image(self, params: Optional[ImageGenParams] = None, payload: Optional[dict] = None):
         raise NotImplementedError
+    
+    async def force_close(self):
+        raise NotImplementedError
