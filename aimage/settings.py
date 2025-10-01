@@ -156,6 +156,7 @@ class Settings(MixinMeta):
         Sends a signal to force close the webui. Needs this extension to work: https://github.com/hollowstrawberry/sd-webui-force-close
         """
         instance = WebuiAPI(self, ctx)
+        await instance._init()
         if await instance.force_close():
             await ctx.tick(message="✅ Force close initiated.")
         else:
