@@ -384,11 +384,15 @@ class AImage(Settings,
         api = await self.get_api_instance(ctx)
         try:
             response = await api.interrogate(image_bytes, model, threshold)
-        except aiohttp.web.HTTPNotFound:
-            await ctx.reply("Failed to tag the image as the bot owner or administrator has to install the [wd tagger](https://github.com/Akegarasu/sd-webui-wd14-tagger) extension on the webui instance.")
+        except aiohttp.ClientResponseError as error:
+            if error.status == 404:
+                await ctx.reply("For the tagger to work, the bot owner or administrator has to install the [wd tagger](https://github.com/Akegarasu/sd-webui-wd14-tagger) extension on the webui instance.")
+            else:
+                log.error("Trying to interrogate image through webui", exc_info=True)
+                await ctx.reply("Failed to tag the image, contact the bot owner. ")
         except aiohttp.ClientError:
             log.error("Trying to interrogate image through webui", exc_info=True)
-            await ctx.reply("Failed to tag the image, contact the bot owner.")
+            await ctx.reply("Failed to tag the image, contact the bot owner. ")
         else:
             log.info(f"{response=}")
             await ctx.reply("Test complete, check logs")

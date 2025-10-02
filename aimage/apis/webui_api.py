@@ -197,7 +197,7 @@ class WebuiAPI(BaseAPI):
             return await response.json()
         
     async def interrogate(self, image: bytes, model: str, threshold: float):
-        url = self.endpoint.replace("/sdapi/v1", "/tagger/v1")
+        url = self.endpoint.replace("/sdapi/v1", "/tagger/v1") + "interrogate"
         payload = {
             "image": base64.b64encode(image).decode("utf8"),
             "model": model,
