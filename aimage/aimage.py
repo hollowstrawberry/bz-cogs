@@ -354,7 +354,7 @@ class AImage(Settings,
             embed = discord.Embed(title="Autotagger Result", color=await self.bot.get_embed_color(ctx))
             embed.set_thumbnail(url=attachment.url)
             embed.description = ", ".join([f"`{clean_tag(tag)}`" for tag in tags])
-            await ctx.reply(embed=embed)
+            await ctx.reply(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
 
     async def generate_image(self,
