@@ -70,7 +70,7 @@ class WebuiAPI(BaseAPI):
 
     async def _init(self):
         assert self.guild
-        self.endpoint = await self.config.guild(self.guild).endpoint()
+        self.endpoint: str = await self.config.guild(self.guild).endpoint()
         self.auth = get_auth(await self.config.guild(self.guild).auth())
 
     async def update_autocomplete_cache(self, cache):
@@ -194,6 +194,16 @@ class WebuiAPI(BaseAPI):
     async def _get_terms(self, page):
         url = self.endpoint + page
         async with self.session.get(url=url, auth=self.auth, raise_for_status=True) as response:
+            return await response.json()
+        
+    async def interrogate(self, image: bytes, model: str, threshold: float):
+        url = self.endpoint.replace("/sdapi/v1", "/tagger/v1")
+        payload = {
+            image: base64.b64encode(image).decode("utf8"),
+            model: model,
+            threshold: threshold,
+        }
+        async with self.session.post(url=url, json=payload, auth=self.auth, raise_for_status=True) as response:
             return await response.json()
     
     async def force_close(self):
