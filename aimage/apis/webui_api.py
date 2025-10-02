@@ -199,9 +199,9 @@ class WebuiAPI(BaseAPI):
     async def interrogate(self, image: bytes, model: str, threshold: float):
         url = self.endpoint.replace("/sdapi/v1", "/tagger/v1")
         payload = {
-            image: base64.b64encode(image).decode("utf8"),
-            model: model,
-            threshold: threshold,
+            "image": base64.b64encode(image).decode("utf8"),
+            "model": model,
+            "threshold": threshold,
         }
         async with self.session.post(url=url, json=payload, auth=self.auth, raise_for_status=True) as response:
             return await response.json()
