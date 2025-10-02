@@ -198,8 +198,5 @@ class WebuiAPI(BaseAPI):
     
     async def force_close(self):
         url = self.endpoint + "force_close"
-        try:
-            async with self.session.post(url=url, auth=self.auth, raise_for_status=True):
-                return True
-        except aiohttp.ClientError:
-            return False
+        async with self.session.post(url=url, auth=self.auth, raise_for_status=True) as response:
+            return response.status

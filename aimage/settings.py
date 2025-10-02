@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Optional
 
 import discord
@@ -8,6 +9,8 @@ from redbot.core.utils.menus import SimpleMenu # type: ignore
 from aimage.abc import MixinMeta
 from aimage.apis.webui_api import WebuiAPI
 from aimage.common.helpers import delete_button_after
+
+log = logging.getLogger("red.bz_cogs.aimage")
 
 
 class Settings(MixinMeta):
@@ -157,10 +160,13 @@ class Settings(MixinMeta):
         """
         instance = WebuiAPI(self, ctx)
         await instance._init()
-        if await instance.force_close():
-            await ctx.tick(message="✅ Force close initiated.")
-        else:
+        try:
+            await instance.force_close()
+        except Exception:
+            log.error("Trying to force close webui", exc_info=True)
             await ctx.reply("Force close did not work.")
+        else:
+            await ctx.tick(message="✅ Force close initiated.")
 
     @aimage.command(name="negative_prompt")
     async def negative_prompt(self, ctx: commands.Context, *, negative_prompt: Optional[str]):
