@@ -100,6 +100,6 @@ PARAMS_BLACKLIST = [
     "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
 ]
 
-DEFAULT_TAGGER = "wd-eva02-large-tagger-v3"
+DEFAULT_TAGGER = "wd-vit-large-tagger-v3"
 
 EXCLUDE_TAGGER = ["general", "sensitive", "questionable", "explicit"]

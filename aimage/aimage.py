@@ -308,10 +308,10 @@ class AImage(Settings,
 
     @app_commands.command(name="autotag")
     @app_commands.describe(image="The image to generate tags for",
-                           threshold="Higher means more tags but less accuracy",
+                           threshold="Lower means more tags but less accuracy",
                            model="The WD tagger to use.")
-    @app_commands.choices(model=[app_commands.Choice(name="eva02-large-v3", value="wd-eva02-large-tagger-v3"),
-                                 app_commands.Choice(name="vit-large-v3", value="wd-vit-large-tagger-v3")])
+    @app_commands.choices(model=[app_commands.Choice(name="vit-large-v3", value="wd-vit-large-tagger-v3"),
+                                 app_commands.Choice(name="eva02-large-v3", value="wd-eva02-large-tagger-v3")])
     @app_commands.checks.bot_has_permissions(attach_files=True)
     @app_commands.guild_only()
     async def autotag_app(
