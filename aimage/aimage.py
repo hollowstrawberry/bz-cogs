@@ -373,8 +373,8 @@ class AImage(Settings,
         await interaction.response.defer(thinking=True)
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        if not await self._can_run_command(ctx, "autotag"):
-            return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
+        #if not await self._can_run_command(ctx, "autotag"):
+        #    return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
 
         assert ctx.guild and image.content_type
         if not image.content_type.startswith("image/"):
