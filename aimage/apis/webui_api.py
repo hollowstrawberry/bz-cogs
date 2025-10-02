@@ -197,6 +197,6 @@ class WebuiAPI(BaseAPI):
             return await response.json()
     
     async def force_close(self):
-        url = self.endpoint + "force_close"
+        url = self.endpoint.replace("/sdapi/v1", "") + "force_close"
         async with self.session.post(url=url, auth=self.auth, raise_for_status=True) as response:
             return response.status
