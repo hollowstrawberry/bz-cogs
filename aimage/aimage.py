@@ -304,7 +304,8 @@ class AImage(Settings,
         if not image.content_type.startswith("image/"):
             return await ctx.reply("The file you uploaded is not a valid image.")
         
-        await self.autotag(ctx, image, 0.35, DEFAULT_TAGGER)
+        async with ctx.typing():
+            await self.autotag(ctx, image, 0.35, DEFAULT_TAGGER)
 
     @app_commands.command(name="autotag")
     @app_commands.describe(image="The image to generate tags for",
@@ -324,8 +325,6 @@ class AImage(Settings,
         """
         Generate booru tags for an image.
         """
-        await interaction.response.defer(thinking=True)
-
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
         if not await self._can_run_command(ctx, "autotag"):
             return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
@@ -334,6 +333,7 @@ class AImage(Settings,
         if not image.content_type.startswith("image/"):
             return await interaction.followup.send("The file you uploaded is not a valid image.", ephemeral=True)
         
+        await interaction.response.defer(thinking=True)
         await self.autotag(ctx, image, threshold, model)
         
     async def autotag(self, ctx: commands.Context, attachment: discord.Attachment, threshold: float, model: str):
