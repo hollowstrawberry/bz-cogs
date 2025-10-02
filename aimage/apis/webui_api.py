@@ -12,7 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_random
 from aimage.abc import MixinMeta
 from aimage.apis.base_api import BaseAPI
 from aimage.apis.response import ImageResponse
-from aimage.common.constants import ADETAILER_ARGS, TILED_VAE_ARGS
+from aimage.common.constants import ADETAILER_ARGS, EXCLUDE_TAGGER, TILED_VAE_ARGS
 from aimage.common.helpers import get_auth
 from aimage.common.params import ImageGenParams
 
@@ -205,7 +205,7 @@ class WebuiAPI(BaseAPI):
         }
         async with self.session.post(url=url, json=payload, auth=self.auth, raise_for_status=True) as response:
             response = await response.json()
-            return response.get("caption", {}).keys()
+            return [tag for tag in response.get("caption", {}).keys() if tag not in EXCLUDE_TAGGER]
     
     async def force_close(self):
         url = self.endpoint.replace("/sdapi/v1", "") + "force_close"

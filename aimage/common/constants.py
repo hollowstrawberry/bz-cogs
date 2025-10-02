@@ -101,3 +101,5 @@ PARAMS_BLACKLIST = [
 ]
 
 DEFAULT_TAGGER = "wd-eva02-large-tagger-v3"
+
+EXCLUDE_TAGGER = ["general", "sensitive", "questionable", "explicit"]
