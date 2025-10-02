@@ -99,3 +99,5 @@ PARAMS_BLACKLIST = [
     "ADetailer confidence", "ADetailer mask", "ADetailer dilate", "ADetailer denoising", "ADetailer steps",
     "ADetailer inpaint", "ADetailer version", "ADetailer prompt", "ADetailer use", "ADetailer checkpoint",
 ]
+
+DEFAULT_TAGGER = "wd-eva02-large-tagger-v3"

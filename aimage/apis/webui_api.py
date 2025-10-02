@@ -204,7 +204,8 @@ class WebuiAPI(BaseAPI):
             "threshold": threshold,
         }
         async with self.session.post(url=url, json=payload, auth=self.auth, raise_for_status=True) as response:
-            return await response.json()
+            response = await response.json()
+            return response.get("caption", {}).keys()
     
     async def force_close(self):
         url = self.endpoint.replace("/sdapi/v1", "") + "force_close"

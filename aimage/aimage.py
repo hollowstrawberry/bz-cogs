@@ -2,7 +2,6 @@ import re
 import logging
 import asyncio
 import aiohttp
-import aiohttp.web
 import discord
 from copy import copy
 from typing import Coroutine, List, Optional, Union
@@ -13,8 +12,8 @@ from redbot.core import Config, app_commands, checks, commands
 from redbot.core.bot import Red
 
 from aimage.abc import CompositeMetaClass
-from aimage.common.constants import DEFAULT_BADWORDS_BLACKLIST, DEFAULT_NEGATIVE_PROMPT
-from aimage.common.helpers import send_response
+from aimage.common.constants import DEFAULT_BADWORDS_BLACKLIST, DEFAULT_NEGATIVE_PROMPT, DEFAULT_TAGGER
+from aimage.common.helpers import send_response, clean_tag
 from aimage.common.params import ImageGenParams
 from aimage.image_handler import ImageHandler
 from aimage.apis.webui_api import WebuiAPI
@@ -292,6 +291,72 @@ class AImage(Settings,
 
         await self.generate_image(interaction, params=params)
 
+    @commands.command(name="autotag")
+    async def autotag_cmd(self, ctx: commands.Context):
+        """
+        Generate booru tags for an image.
+        """
+        if not ctx.message.attachments:
+            return await ctx.reply("You must use this command with an image.")
+
+        image = ctx.message.attachments[0]
+        assert ctx.guild and image.content_type
+        if not image.content_type.startswith("image/"):
+            return await ctx.reply("The file you uploaded is not a valid image.")
+        
+        await self.autotag(ctx, image, 0.35, DEFAULT_TAGGER)
+
+    @app_commands.command(name="autotag")
+    @app_commands.describe(image="The image to generate tags for",
+                           threshold="Higher means more tags but less accuracy",
+                           model="The WD tagger to use.")
+    @app_commands.choices(model=[app_commands.Choice(name="eva02-large-v3", value="wd-eva02-large-tagger-v3"),
+                                 app_commands.Choice(name="vit-large-v3", value="wd-vit-large-tagger-v3")])
+    @app_commands.checks.bot_has_permissions(attach_files=True)
+    @app_commands.guild_only()
+    async def autotag_app(
+            self,
+            interaction: discord.Interaction,
+            image: discord.Attachment,
+            threshold: app_commands.Range[float, 0.1, 0.7] = 0.35,
+            model: str = DEFAULT_TAGGER,
+    ):
+        """
+        Generate booru tags for an image.
+        """
+        await interaction.response.defer(thinking=True)
+
+        ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
+        if not await self._can_run_command(ctx, "autotag"):
+            return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
+
+        assert ctx.guild and image.content_type
+        if not image.content_type.startswith("image/"):
+            return await interaction.followup.send("The file you uploaded is not a valid image.", ephemeral=True)
+        
+        await self.autotag(ctx, image, threshold, model)
+        
+    async def autotag(self, ctx: commands.Context, attachment: discord.Attachment, threshold: float, model: str):
+        image_bytes = await attachment.read()
+        api = await self.get_api_instance(ctx)
+        try:
+            tags = await api.interrogate(image_bytes, model, threshold)
+        except aiohttp.ClientResponseError as error:
+            if error.status == 404:
+                await ctx.reply("For the tagger to work, the bot owner or administrator has to install the [wd tagger](https://github.com/Akegarasu/sd-webui-wd14-tagger) extension on the webui instance.")
+            else:
+                log.error("Trying to interrogate image through webui", exc_info=True)
+                await ctx.reply("Failed to tag the image, contact the bot owner. ")
+        except aiohttp.ClientError:
+            log.error("Trying to interrogate image through webui", exc_info=True)
+            await ctx.reply("Failed to tag the image, contact the bot owner. ")
+        else:
+            embed = discord.Embed(title="Autotagger Result", color=await self.bot.get_embed_color(ctx))
+            embed.set_thumbnail(url=attachment.url)
+            embed.description = ", ".join([f"`{clean_tag(tag)}`" for tag in tags])
+            await ctx.reply(embed=embed)
+
+
     async def generate_image(self,
                              context: Union[commands.Context, discord.Interaction],
                              payload: dict = None,
@@ -351,52 +416,6 @@ class AImage(Settings,
         except NotImplementedError:
             log.debug(f"Autocomplete terms is not supported by the api in server {ctx.guild.id}")
             pass
-
-    @app_commands.command(name="autotag")
-    @app_commands.describe(image="The image to generate tags for",
-                           threshold="Higher means more tags but less accuracy",
-                           model="The WD tagger to use.")
-    @app_commands.choices(model=[app_commands.Choice(name="eva02-large-v3", value="wd-eva02-large-tagger-v3"),
-                                 app_commands.Choice(name="vit-large-v3", value="wd-vit-large-tagger-v3")])
-    @app_commands.checks.bot_has_permissions(attach_files=True)
-    @app_commands.guild_only()
-    async def autotag_app(
-            self,
-            interaction: discord.Interaction,
-            image: discord.Attachment,
-            threshold: app_commands.Range[float, 0.1, 0.7] = 0.35,
-            model: str = "wd-eva02-large-tagger-v3",
-    ):
-        """
-        Generate booru tags for an image.
-        """
-        await interaction.response.defer(thinking=True)
-
-        ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        #if not await self._can_run_command(ctx, "autotag"):
-        #    return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
-
-        assert ctx.guild and image.content_type
-        if not image.content_type.startswith("image/"):
-            return await interaction.followup.send("The file you uploaded is not a valid image.", ephemeral=True)
-
-        image_bytes = await image.read()
-        api = await self.get_api_instance(ctx)
-        try:
-            response = await api.interrogate(image_bytes, model, threshold)
-        except aiohttp.ClientResponseError as error:
-            if error.status == 404:
-                await ctx.reply("For the tagger to work, the bot owner or administrator has to install the [wd tagger](https://github.com/Akegarasu/sd-webui-wd14-tagger) extension on the webui instance.")
-            else:
-                log.error("Trying to interrogate image through webui", exc_info=True)
-                await ctx.reply("Failed to tag the image, contact the bot owner. ")
-        except aiohttp.ClientError:
-            log.error("Trying to interrogate image through webui", exc_info=True)
-            await ctx.reply("Failed to tag the image, contact the bot owner. ")
-        else:
-            log.info(f"{response=}")
-            await ctx.reply("Test complete, check logs")
-
 
     async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction]):
         instance = WebuiAPI(self, ctx)
