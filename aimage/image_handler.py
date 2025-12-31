@@ -34,7 +34,7 @@ class ImageHandler(MixinMeta):
             log.info(f"Starting generation")
             self.generating[user.id] = True
             force_closed = False
-            for _ in range(10):
+            for _ in range(12):
                 try:
                     api = await self.get_api_instance(context)
                     response: ImageResponse = await api.generate_image(params, payload)
@@ -52,7 +52,7 @@ class ImageHandler(MixinMeta):
                         raise
                 except (RuntimeError, aiohttp.ClientOSError, aiohttp.ServerDisconnectedError):
                     log.info("Failed to generate, sleeping...")
-                    await asyncio.sleep(10)
+                    await asyncio.sleep(5)
                 else:
                     break
         except ValueError as error:
