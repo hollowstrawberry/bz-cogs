@@ -165,7 +165,6 @@ class WebuiAPI(BaseAPI):
 
         return payload
 
-    @retry(wait=wait_random(min=3, max=5), stop=stop_after_attempt(3), reraise=True)
     async def _post_image_gen(self, payload, generation_type: ImageGenerationType):
         url = self.endpoint + generation_type.value
         async with self.session.post(url=url, json=payload, auth=self.auth) as response:

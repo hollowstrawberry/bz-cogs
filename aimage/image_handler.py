@@ -33,25 +33,35 @@ class ImageHandler(MixinMeta):
         try:
             log.info(f"Starting generation")
             self.generating[user.id] = True
+            force_closed = False
             for _ in range(10):
                 try:
                     api = await self.get_api_instance(context)
                     response: ImageResponse = await api.generate_image(params, payload)
+                except aiohttp.ClientResponseError as error:
+                    # I'm having trouble with my webui, so we'll force close in the case of an internal error
+                    if error.status == 500 and not force_closed:
+                        try:
+                            force_closed = True
+                            await api.force_close()
+                            await asyncio.sleep(30)
+                        except:
+                            pass
+                    else:
+                        raise
                 except (RuntimeError, aiohttp.ClientOSError, aiohttp.ServerDisconnectedError):
                     log.info("Failed to generate, sleeping...")
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(10)
                 else:
                     break
         except ValueError as error:
             return await send_response(context, content=f":warning: Invalid parameter: {error}", ephemeral=True)
         except aiohttp.ClientResponseError as error:
             log.exception(f"Failed request in host {guild.id}")
-            return await send_response(context, content=":warning: Timed out! Bad response from host!", ephemeral=True)
+            return await send_response(context, content=":warning: There was a problem with the image generator!", ephemeral=True)
         except aiohttp.ClientConnectorError:
             log.exception(f"Failed request in server {guild.id}")
-            return await send_response(context, content=":warning: Timed out! Could not reach host!", ephemeral=True)
-        except NotImplementedError:
-            return await send_response(context, content=":warning: This method is not supported by the host!", ephemeral=True)
+            return await send_response(context, content=":warning: Timed out! Could not reach the image generator.", ephemeral=True)
         except Exception:
             log.exception(f"Failed request in server {guild.id}")
             return await send_response(context, content=":warning: Something went wrong!", ephemeral=True)
