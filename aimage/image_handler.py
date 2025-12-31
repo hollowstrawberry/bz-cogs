@@ -43,6 +43,7 @@ class ImageHandler(MixinMeta):
                     if error.status == 500 and not force_closed:
                         try:
                             force_closed = True
+                            log.info("Failed to generate, restarting...")
                             await api.force_close()
                             await asyncio.sleep(30)
                         except:
