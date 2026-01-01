@@ -33,23 +33,10 @@ class ImageHandler(MixinMeta):
         try:
             log.info(f"Starting generation")
             self.generating[user.id] = True
-            force_closed = False
-            for _ in range(12):
+            for _ in range(3):
                 try:
                     api = await self.get_api_instance(context)
                     response: ImageResponse = await api.generate_image(params, payload)
-                except aiohttp.ClientResponseError as error:
-                    # I'm having trouble with my webui, so we'll force close in the case of an internal error
-                    if error.status == 500 and not force_closed:
-                        try:
-                            force_closed = True
-                            log.info("Failed to generate, restarting...")
-                            await api.force_close()
-                            await asyncio.sleep(30)
-                        except:
-                            pass
-                    else:
-                        raise
                 except (RuntimeError, aiohttp.ClientOSError, aiohttp.ServerDisconnectedError):
                     log.info("Failed to generate, sleeping...")
                     await asyncio.sleep(5)
@@ -62,7 +49,7 @@ class ImageHandler(MixinMeta):
             return await send_response(context, content=":warning: There was a problem with the image generator!", ephemeral=True)
         except aiohttp.ClientConnectorError:
             log.exception(f"Failed request in server {guild.id}")
-            return await send_response(context, content=":warning: Timed out! Could not reach the image generator.", ephemeral=True)
+            return await send_response(context, content=":warning: Could not reach the image generator!", ephemeral=True)
         except Exception:
             log.exception(f"Failed request in server {guild.id}")
             return await send_response(context, content=":warning: Something went wrong!", ephemeral=True)
