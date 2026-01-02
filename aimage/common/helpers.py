@@ -12,8 +12,9 @@ async def send_response(context: Union[commands.Context, discord.Interaction], *
     if isinstance(context, discord.Interaction):
         return await context.followup.send(**kwargs)
     else:
+        msg = await context.send(**kwargs)
         asyncio.create_task(context.message.remove_reaction("⏳", context.bot.user))
-        return await context.send(**kwargs)
+        return msg
 
 
 def round_to_nearest(x, base):
