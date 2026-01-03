@@ -79,6 +79,7 @@ class WebuiAPI(BaseAPI):
             if header.count(":") == 1:
                 key, val = header.split(":")
                 self.headers[key.strip()] = val.strip()
+        logger.info(self.headers)
 
     async def update_autocomplete_cache(self, cache):
         assert self.guild
