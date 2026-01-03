@@ -70,8 +70,26 @@ class AImage(Settings,
         self.config.register_guild(**default_guild)
         self.config.register_member(**default_member)
 
+    async def cog_load(self):
+        asyncio.create_task(self.load_all_autocomplete_caches())
+
     async def cog_unload(self):
         await self.session.close()
+
+    async def load_all_autocomplete_caches(self):
+        all_guilds = await self.config.all_guilds()
+        endpoint_to_cache = {}
+        for gid, data in all_guilds.items():
+            endpoint = data["endpoint"]
+            if not endpoint:
+                continue
+            if endpoint in endpoint_to_cache:
+                self.autocomplete_cache[gid] = endpoint_to_cache[endpoint]
+            else:
+                guild = self.bot.get_guild(gid)
+                if guild:
+                    await self._update_autocomplete_cache(guild=guild)
+                    endpoint_to_cache[endpoint] = self.autocomplete_cache[gid]
 
     # Some webuis can get overloaded with multiple requests, so we send one at a time
     async def consume_queue(self):
@@ -90,7 +108,7 @@ class AImage(Settings,
 
     async def object_autocomplete(self, interaction: discord.Interaction, current: str, choices: list) -> List[app_commands.Choice[str]]:
         if not choices:
-            await self._update_autocomplete_cache(interaction)
+            #await self._update_autocomplete_cache(interaction)
             return []
         choices = self.filter_list(choices, current)
         return [app_commands.Choice(name=choice, value=choice) for choice in choices[:25]]
@@ -103,7 +121,7 @@ class AImage(Settings,
         choices = self.autocomplete_cache[interaction.guild_id].get("loras") or []
 
         if not choices:
-            await self._update_autocomplete_cache(interaction)
+            #await self._update_autocomplete_cache(interaction)
             return []
 
         weight = "1"
@@ -169,7 +187,7 @@ class AImage(Settings,
         """
         assert ctx.guild
         if not self.autocomplete_cache[ctx.guild.id]:
-            asyncio.create_task(self._update_autocomplete_cache(ctx))
+            asyncio.create_task(self._update_autocomplete_cache(ctx.guild))
 
         params = ImageGenParams(prompt=prompt)
         message_content=f"Result of {ctx.message.jump_url} requested by {ctx.author.mention}"
@@ -408,17 +426,16 @@ class AImage(Settings,
             can = False
         return can
 
-    async def _update_autocomplete_cache(self, ctx: Union[commands.Context, discord.Interaction]):
-        assert ctx.guild
-        api = await self.get_api_instance(ctx)
+    async def _update_autocomplete_cache(self, guild: discord.Guild):
+        api = await self.get_api_instance(guild=guild)
         try:
-            log.debug(f"Ran a update to get possible autocomplete terms in server {ctx.guild.id}")
+            log.debug(f"Ran a update to get possible autocomplete terms in server {guild.id}")
             await api.update_autocomplete_cache(self.autocomplete_cache)
         except NotImplementedError:
-            log.debug(f"Autocomplete terms is not supported by the api in server {ctx.guild.id}")
+            log.debug(f"Autocomplete terms is not supported by the api in server {guild.id}")
             pass
 
-    async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction]):
-        instance = WebuiAPI(self, ctx)
+    async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction] = None, guild: discord.Guild = None):
+        instance = WebuiAPI(self, ctx, guild)
         await instance._init()
         return instance

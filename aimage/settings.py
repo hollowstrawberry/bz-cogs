@@ -30,7 +30,6 @@ class Settings(MixinMeta):
             return await self.config.member(ctx.author).checkpoint.set("")
 
         await ctx.message.add_reaction("🔄")
-        await self._update_autocomplete_cache(ctx)
         data = self.autocomplete_cache[ctx.guild.id].get("checkpoints") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
         
@@ -123,7 +122,6 @@ class Settings(MixinMeta):
         nsfw = await self.config.guild(ctx.guild).nsfw()
         if nsfw:
             await ctx.message.add_reaction("🔄")
-            await self._update_autocomplete_cache(ctx)
             data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
             await ctx.message.remove_reaction("🔄", ctx.me)
             if "censorscript" not in data:
@@ -145,7 +143,6 @@ class Settings(MixinMeta):
         elif value < -0.2 or value > 0.2:
             await ctx.send(f"Valid values are between -0.2 and 0.2")
         else:
-            await self._update_autocomplete_cache(ctx)
             data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
             if "censorscript" not in data:
                 await ctx.send("You need [the updated CensorScript.py](<https://github.com/hollowstrawberry/sd-webui-nsfw-checker>) in your A1111 to use this.")
@@ -204,7 +201,6 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         await ctx.message.add_reaction("🔄")
-        await self._update_autocomplete_cache(ctx)
         samplers = self.autocomplete_cache[ctx.guild.id].get("samplers") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
 
@@ -221,7 +217,6 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         await ctx.message.add_reaction("🔄")
-        await self._update_autocomplete_cache(ctx)
         schedulers = self.autocomplete_cache[ctx.guild.id].get("schedulers") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
 
@@ -272,7 +267,6 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         await ctx.message.add_reaction("🔄")
-        await self._update_autocomplete_cache(ctx)
         data = self.autocomplete_cache[ctx.guild.id].get("checkpoints") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
         
@@ -298,7 +292,6 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         await ctx.message.add_reaction("🔄")
-        await self._update_autocomplete_cache(ctx)
         data = self.autocomplete_cache[ctx.guild.id].get("vaes") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
         if vae not in data:
@@ -351,7 +344,6 @@ class Settings(MixinMeta):
         new = not await self.config.guild(ctx.guild).adetailer()
         if new:
             await ctx.message.add_reaction("🔄")
-            await self._update_autocomplete_cache(ctx)
             data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
             await ctx.message.remove_reaction("🔄", ctx.me)
             if "adetailer" not in data:
@@ -369,7 +361,6 @@ class Settings(MixinMeta):
         new = not await self.config.guild(ctx.guild).tiledvae()
         if new:
             await ctx.message.add_reaction("🔄")
-            await self._update_autocomplete_cache(ctx)
             data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
             await ctx.message.remove_reaction("🔄", ctx.me)
             if "tiled vae" not in data:

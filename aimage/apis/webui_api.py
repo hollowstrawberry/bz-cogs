@@ -60,12 +60,12 @@ class ImageGenerationType(Enum):
 
 
 class WebuiAPI(BaseAPI):
-    def __init__(self, cog: MixinMeta, context: Union[commands.Context, discord.Interaction]):
+    def __init__(self, cog: MixinMeta, context: Union[None, commands.Context, discord.Interaction], guild: discord.Guild = None):
         self.session = cog.session
         self.headers = {}
         self.config = cog.config
         self.context = context
-        self.guild = context.guild
+        self.guild = context.guild if context else guild
         assert self.guild
         cog.autocomplete_cache[self.guild.id]["samplers"] = A1111_SAMPLERS
 
