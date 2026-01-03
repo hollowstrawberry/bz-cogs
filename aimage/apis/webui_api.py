@@ -108,7 +108,7 @@ class WebuiAPI(BaseAPI):
         return await self._post_image_gen(payload, gen_type)
 
     async def _generate_payload(self, params: Optional[ImageGenParams]) -> dict:
-        assert self.guild
+        assert self.guild and self.context
         if params is None:
             return {}
         if params.negative_prompt is None:
