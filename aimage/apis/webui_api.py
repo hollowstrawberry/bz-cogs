@@ -62,6 +62,7 @@ class ImageGenerationType(Enum):
 class WebuiAPI(BaseAPI):
     def __init__(self, cog: MixinMeta, context: Union[commands.Context, discord.Interaction]):
         self.session = cog.session
+        self.headers = {}
         self.config = cog.config
         self.context = context
         self.guild = context.guild
@@ -72,6 +73,12 @@ class WebuiAPI(BaseAPI):
         assert self.guild
         self.endpoint: str = await self.config.guild(self.guild).endpoint()
         self.auth = get_auth(await self.config.guild(self.guild).auth())
+        raw_headers = await self.config.guild(self.guild).headers()
+        for header in raw_headers.split("\n"):
+            header = header.strip()
+            if header.count(":") == 1:
+                key, val = header.split(":")
+                self.headers[key.strip()] = val.strip()
 
     async def update_autocomplete_cache(self, cache):
         assert self.guild
@@ -167,7 +174,7 @@ class WebuiAPI(BaseAPI):
 
     async def _post_image_gen(self, payload, generation_type: ImageGenerationType):
         url = self.endpoint + generation_type.value
-        async with self.session.post(url=url, json=payload, auth=self.auth) as response:
+        async with self.session.post(url=url, json=payload, auth=self.auth, headers=self.headers) as response:
             r = await response.json()
             if response.status == 422:
                 raise ValueError(r["detail"])
@@ -192,7 +199,7 @@ class WebuiAPI(BaseAPI):
     @retry(wait=wait_random(min=3, max=5), stop=stop_after_attempt(1), reraise=True)
     async def _get_terms(self, page):
         url = self.endpoint + page
-        async with self.session.get(url=url, auth=self.auth, raise_for_status=True) as response:
+        async with self.session.get(url=url, auth=self.auth, headers=self.headers, raise_for_status=True) as response:
             return await response.json()
         
     async def interrogate(self, image: bytes, model: str, threshold: float):
@@ -202,11 +209,11 @@ class WebuiAPI(BaseAPI):
             "model": model,
             "threshold": threshold,
         }
-        async with self.session.post(url=url, json=payload, auth=self.auth, raise_for_status=True) as response:
+        async with self.session.post(url=url, json=payload, auth=self.auth, headers=self.headers, raise_for_status=True) as response:
             response = await response.json()
             return [tag for tag in response.get("caption", {}).keys() if tag not in EXCLUDE_TAGGER]
     
     async def force_close(self):
         url = self.endpoint.replace("/sdapi/v1", "") + "force_close"
-        async with self.session.post(url=url, auth=self.auth, raise_for_status=True) as response:
+        async with self.session.post(url=url, auth=self.auth, headers=self.headers, raise_for_status=True) as response:
             return response.status

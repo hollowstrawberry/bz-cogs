@@ -54,6 +54,7 @@ class AImage(Settings,
             "height": 1024,
             "max_img2img": 1536,
             "auth": None,
+            "headers": "",
             "scheduler": "Automatic",
             "vip_role": -1,
         }

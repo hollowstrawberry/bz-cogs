@@ -329,6 +329,19 @@ class Settings(MixinMeta):
         await self.config.guild(ctx.guild).auth.set(auth)
         await ctx.send("✅ Auth set.")
 
+    @aimage.command(name="headers")
+    async def headers(self, ctx: commands.Context, *, headers: str):
+        """
+        Sets the headers for the requests to the webui
+        """
+        assert ctx.guild
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
+        await self.config.guild(ctx.guild).headers.set(headers)
+        await ctx.send("✅ Headers set.")
+
     @aimage.command(name="adetailer")
     async def adetailer(self, ctx: commands.Context):
         """
