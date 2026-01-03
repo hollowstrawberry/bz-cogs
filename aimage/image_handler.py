@@ -69,7 +69,6 @@ class ImageHandler(MixinMeta):
         msg = await send_response(context, file=file, view=view, content=message_content, allowed_mentions=discord.AllowedMentions.none())
 
         asyncio.create_task(delete_button_after(msg))
-        asyncio.create_task(self._update_autocomplete_cache(context))
         if callback:
             asyncio.create_task(callback)
 

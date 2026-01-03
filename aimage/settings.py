@@ -475,7 +475,8 @@ class Settings(MixinMeta):
         """
         Updates the autocomplete cache
         """
-        await self._update_autocomplete_cache(ctx)
+        assert ctx.guild
+        await self._update_autocomplete_cache(ctx.guild)
         await ctx.message.add_reaction("✅")
         
     @aimage.group()

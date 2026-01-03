@@ -29,5 +29,5 @@ class MixinMeta(ABC):
     async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction]) -> BaseAPI:
         raise NotImplementedError
 
-    async def _update_autocomplete_cache(self, ctx: Union[None, commands.Context, discord.Interaction], guild: Union[None, discord.Guild] = None):
+    async def _update_autocomplete_cache(self, guild: discord.Guild):
         raise NotImplementedError

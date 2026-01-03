@@ -186,9 +186,6 @@ class AImage(Settings,
             - `prompt` a prompt to generate an image from
         """
         assert ctx.guild
-        if not self.autocomplete_cache[ctx.guild.id]:
-            asyncio.create_task(self._update_autocomplete_cache(ctx.guild))
-
         params = ImageGenParams(prompt=prompt)
         message_content=f"Result of {ctx.message.jump_url} requested by {ctx.author.mention}"
         await self.generate_image(ctx, params=params, message_content=message_content)
