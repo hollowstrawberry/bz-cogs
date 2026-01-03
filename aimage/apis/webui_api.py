@@ -60,7 +60,7 @@ class ImageGenerationType(Enum):
 
 
 class WebuiAPI(BaseAPI):
-    def __init__(self, cog: MixinMeta, context: Union[None, commands.Context, discord.Interaction], guild: discord.Guild = None):
+    def __init__(self, cog: MixinMeta, context: Union[None, commands.Context, discord.Interaction], guild: Union[None, discord.Guild] = None):
         self.session = cog.session
         self.headers = {}
         self.config = cog.config

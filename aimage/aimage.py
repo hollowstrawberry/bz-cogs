@@ -435,7 +435,7 @@ class AImage(Settings,
             log.debug(f"Autocomplete terms is not supported by the api in server {guild.id}")
             pass
 
-    async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction] = None, guild: discord.Guild = None):
-        instance = WebuiAPI(self, ctx, guild)
+    async def get_api_instance(self, ctx: Union[None, commands.Context, discord.Interaction] = None, guild: Union[None, discord.Guild] = None):
+        instance = WebuiAPI(self, context=ctx, guild=guild)
         await instance._init()
         return instance
