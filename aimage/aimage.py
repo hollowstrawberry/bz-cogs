@@ -85,11 +85,13 @@ class AImage(Settings,
                 continue
             if endpoint in endpoint_to_cache:
                 self.autocomplete_cache[gid] = endpoint_to_cache[endpoint]
+                log.info(f"Copied autocomplete cache from {endpoint} to guild {gid}")
             else:
                 guild = self.bot.get_guild(gid)
                 if guild:
-                    await self._update_autocomplete_cache(guild=guild)
+                    await self._update_autocomplete_cache(guild)
                     endpoint_to_cache[endpoint] = self.autocomplete_cache[gid]
+                    log.info(f"Created autocomplete cache for guild {gid} and endpoint {endpoint}")
 
     # Some webuis can get overloaded with multiple requests, so we send one at a time
     async def consume_queue(self):

@@ -54,7 +54,8 @@ class HiresModal(ui.Modal):
             ])
         )
 
-        self.add_item(self.upscaler_select)
+        if upscalers:
+            self.add_item(self.upscaler_select)
         self.add_item(self.scale_select)
         self.add_item(self.denoising_select)
         if self.adetailer:
