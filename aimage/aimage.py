@@ -71,6 +71,7 @@ class AImage(Settings,
         self.config.register_member(**default_member)
 
     async def cog_load(self):
+        await self.bot.wait_until_red_ready()
         asyncio.create_task(self.load_all_autocomplete_caches())
 
     async def cog_unload(self):
