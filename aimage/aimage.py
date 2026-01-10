@@ -71,13 +71,13 @@ class AImage(Settings,
         self.config.register_member(**default_member)
 
     async def cog_load(self):
-        await self.bot.wait_until_red_ready()
         asyncio.create_task(self.load_all_autocomplete_caches())
 
     async def cog_unload(self):
         await self.session.close()
 
     async def load_all_autocomplete_caches(self):
+        await self.bot.wait_until_red_ready()
         all_guilds = await self.config.all_guilds()
         endpoint_to_cache = {}
         for gid, data in all_guilds.items():
