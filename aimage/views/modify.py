@@ -39,9 +39,9 @@ class ModifyModal(ui.Modal):
             ])
         )
 
+        self.add_item(self.seed_select)
         self.add_item(self.prompt_edit)
         self.add_item(self.negative_prompt_edit)
-        self.add_item(self.seed_select)
         
 
     async def on_submit(self, interaction: discord.Interaction):
