@@ -17,7 +17,7 @@ class HiresModal(ui.Modal):
         self.payload = deepcopy(parent_view.payload)
         self.generate_image = parent_view.generate_image
 
-        upscalers = sorted(parent_view.cache[parent_interaction.guild.id].get("upscalers", []))
+        upscalers = sorted(set(parent_view.cache[parent_interaction.guild.id].get("upscalers", [])))
         maxscale = ((maxsize*maxsize) / (self.payload["width"]*self.payload["height"]))**0.5
         scales = [num/100 for num in range(100, min(max(int(maxscale * 100) + 1, 101), 201), 25)] # 1.00 1.25 1.50 1.75 2.00
         default_scale = 1.5 if 1.5 in scales else scales[-1]
