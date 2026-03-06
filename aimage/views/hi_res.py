@@ -74,6 +74,7 @@ class HiresModal(ui.Modal):
         self.payload["hr_scale"] = float(self.scale_select.component.values[0])
         self.payload["denoising_strength"] = float(self.denoising_select.component.values[0])
         self.payload["hr_second_pass_steps"] = int(self.payload["steps"]) // 2
+        self.payload["hr_cfg_scale"] = float(self.payload["cfg_scale"])
         self.payload["hr_prompt"] = self.payload["prompt"]
         self.payload["hr_negative_prompt"] = self.payload["negative_prompt"]
         self.payload["hr_resize_x"] = 0
