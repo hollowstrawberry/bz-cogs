@@ -12,7 +12,7 @@ from redbot.core import Config, app_commands, checks, commands
 from redbot.core.bot import Red
 
 from aimage.abc import CompositeMetaClass
-from aimage.common.constants import DEFAULT_BADWORDS_BLACKLIST, DEFAULT_NEGATIVE_PROMPT, DEFAULT_TAGGER
+from aimage.common.constants import DEFAULT_BADWORDS_BLACKLIST, DEFAULT_NEGATIVE_PROMPT, DEFAULT_TAGGER, DEFAULT_THRESHOLD
 from aimage.common.helpers import send_response, clean_tag
 from aimage.common.params import ImageGenParams
 from aimage.image_handler import ImageHandler
@@ -324,7 +324,7 @@ class AImage(Settings,
             return await ctx.reply("The file you uploaded is not a valid image.")
         
         async with ctx.typing():
-            await self.autotag(ctx, image, 0.35, DEFAULT_TAGGER)
+            await self.autotag(ctx, image, DEFAULT_THRESHOLD, DEFAULT_TAGGER)
 
     @app_commands.command(name="autotag")
     @app_commands.describe(image="The image to generate tags for",
@@ -338,7 +338,7 @@ class AImage(Settings,
             self,
             interaction: discord.Interaction,
             image: discord.Attachment,
-            threshold: app_commands.Range[float, 0.1, 0.7] = 0.35,
+            threshold: app_commands.Range[float, 0.1, 0.7] = DEFAULT_THRESHOLD,
             model: str = DEFAULT_TAGGER,
     ):
         """
