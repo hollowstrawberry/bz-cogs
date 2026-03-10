@@ -102,4 +102,6 @@ PARAMS_BLACKLIST = [
 
 DEFAULT_TAGGER = "wd-vit-large-tagger-v3"
 
+DEFAULT_THRESHOLD = 0.2
+
 EXCLUDE_TAGGER = ["general", "sensitive", "questionable", "explicit"]
