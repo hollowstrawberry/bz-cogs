@@ -14,9 +14,10 @@ class VariationModal(ui.Modal):
         self.payload = deepcopy(parent_view.payload)
         self.generate_image = parent_view.generate_image
 
-        default_strength = 5
-        if self.payload.get("subseed_strength", 0) > 0:
-            default_strength = round(self.payload.get("subseed_strength", 0) * 100)
+        default_strength_percent = 5
+        previous_strength = self.payload.get("extraSeedStrength", 0)
+        if previous_strength > 0:
+            default_strength_percent = round(previous_strength * 100)
 
         self.subseed_select = ui.Label(
             text="Subseed",
@@ -30,12 +31,12 @@ class VariationModal(ui.Modal):
             text="Strength",
             description="How strong the change should be compared to the original image.",
             component=ui.Select(options=[
-                discord.SelectOption(label=f"{num}%", value=str(num), default=num==default_strength)
+                discord.SelectOption(label=f"{num}%", value=str(num), default=num==default_strength_percent)
                 for num in range(1, 26)
             ])
         )
 
-        if self.payload.get("subseed_strength", 0) > 0:
+        if previous_strength > 0:
             self.add_item(self.subseed_select)
         self.add_item(self.variation_select)
 
@@ -48,8 +49,8 @@ class VariationModal(ui.Modal):
         strength = float(self.variation_select.component.values[0]) / 100
         params = self.parent_view.get_params_dict() or {}
         self.payload["seed"] = int(params.get("Seed", -1))
-        self.payload["subseed"] = -1 if reroll else int(params.get("Variation seed", -1))
-        self.payload["subseed_strength"] = strength
+        self.payload["extraSeed"] = -1 if reroll else int(params.get("Extra seed", -1))
+        self.payload["extraSeedStrength"] = strength
 
         await interaction.response.defer(thinking=True)
         message_content = f"Variation requested by {interaction.user.mention}"

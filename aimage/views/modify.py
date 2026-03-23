@@ -26,7 +26,7 @@ class ModifyModal(ui.Modal):
             text="Negative Prompt",
             component=ui.TextInput(
                 style=discord.TextStyle.long,
-                default=self.payload["negative_prompt"],
+                default=self.payload["negativePrompt"],
                 min_length=0
             )
         )
@@ -49,20 +49,20 @@ class ModifyModal(ui.Modal):
         assert isinstance(self.negative_prompt_edit.component, discord.ui.TextInput)
         assert isinstance(self.seed_select.component, discord.ui.Select)
         
-        same_prompt = self.prompt_edit.component.value == self.payload["prompt"] and self.negative_prompt_edit.component.value == self.payload["negative_prompt"]
+        same_prompt = self.prompt_edit.component.value == self.payload["prompt"] and self.negative_prompt_edit.component.value == self.payload["negativePrompt"]
         self.payload["prompt"] = self.prompt_edit.component.value
-        self.payload["negative_prompt"] = self.negative_prompt_edit.component.value
+        self.payload["negativePrompt"] = self.negative_prompt_edit.component.value
 
         reroll = bool(int(self.seed_select.component.values[0]))
         if reroll:
             self.payload["seed"] = -1
-            self.payload["subseed"] = -1
-            self.payload["subseed_strength"] = 0
+            self.payload["extraSeed"] = -1
+            self.payload["extraSeedStrength"] = 0
         else:
             params = self.parent_view.get_params_dict() or {}
             self.payload["seed"] = int(params.get("Seed", -1))
-            self.payload["subseed"] = int(params.get("Variation seed", -1))
-            self.payload["subseed_strength"] = float(params.get("Variation seed strength", 0))
+            self.payload["extraSeed"] = int(params.get("Variation seed", -1))
+            self.payload["extraSeedStrength"] = float(params.get("Extra seed strength", 0))
 
         await interaction.response.defer(thinking=True)
         message_content = f"Reroll requested by {interaction.user.mention}" if same_prompt else f"Change requested by {interaction.user.mention}"

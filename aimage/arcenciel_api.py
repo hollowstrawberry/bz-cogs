@@ -46,7 +46,7 @@ class ArcEnCielAPI:
         member = context.user if isinstance(context, discord.Interaction) else context.author
         assert isinstance(context.channel, discord.abc.MessageableChannel) and isinstance(member, discord.Member)
         nsfw = is_nsfw(context.channel)
-        payload = payload or await self._build_imagegen_payload(params, member, nsfw)  # type: ignore
+        payload = payload or await self.build_image_payload(params, member, nsfw)  # type: ignore
         url = self.endpoint + "/generator/jobs"
         async with self.session.post(url, json=payload) as response:
             r = await response.json()
@@ -70,7 +70,7 @@ class ArcEnCielAPI:
             b = await response.read()
         return io.BytesIO(b)
     
-    async def _build_imagegen_payload(self, params: ImageGenParams, member: discord.Member, nsfw: bool) -> dict:
+    async def build_image_payload(self, params: ImageGenParams, member: discord.Member, nsfw: bool) -> dict:
         config = self.cog.config
 
         if params.negative_prompt is None:

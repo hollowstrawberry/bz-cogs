@@ -10,12 +10,14 @@ from rapidfuzz import fuzz
 
 from discord.ext import tasks
 from redbot.core import app_commands, checks, commands
+from sd_prompt_reader.image_data_reader import ImageDataReader
 
 from aimage.arcenciel_api import ArcEnCielAPI
 from aimage.constants import DEFAULT_NEGATIVE_PROMPT, DEFAULT_TAGGER, DEFAULT_THRESHOLD
-from aimage.helpers import is_nsfw, send_response, clean_tag
+from aimage.helpers import delete_button_after, is_nsfw, send_response, clean_tag
 from aimage.schema import ImageGenParams, QueuedImageGen
 from aimage.config import AImageConfig
+from aimage.views.image_actions import ImageActions
 
 log = logging.getLogger("red.bz_cogs.aimage")
 
@@ -91,15 +93,16 @@ class AImage(AImageConfig):
 
     async def generate_image(self,
                              context: Union[commands.Context, discord.Interaction],
-                             payload: dict = None,
+                             payload: Optional[dict] = None,
                              params: ImageGenParams = None,
                              callback: Optional[Coroutine] = None,
                              message_content: Optional[str] = None):
         
-        payload = payload or {}
         user = context.user if isinstance(context, discord.Interaction) else context.author
         channel = context.channel
         assert self.api and context.guild and isinstance(user, discord.Member) and isinstance(channel, discord.abc.MessageableChannel)
+        assert payload or params
+        payload = payload or await self.api.build_image_payload(params, user, is_nsfw(channel))  # type: ignore
 
         vip_role = await self.config.guild(context.guild).vip_role()
         if any(gen.user == user for gen in self.queued_images.values()) and all(role.id != vip_role for role in user.roles):
@@ -118,7 +121,7 @@ class AImage(AImageConfig):
 
         try:
             job = await self.api.request_image(context, params, payload)
-            self.queued_images[job["id"]] = QueuedImageGen(job["id"], user, channel, context, callback, message_content)
+            self.queued_images[job["id"]] = QueuedImageGen(job["id"], payload, user, channel, context, callback, message_content)
         except Exception as error:
             content = f":warning: There was a problem generating the image! `{type(error).__name__}: {error}`"
             asyncio.create_task(send_response(context, content=content))
@@ -132,25 +135,24 @@ class AImage(AImageConfig):
             return await send_response(gen.context, content=f"🔞 Blocked NSFW image.", allowed_mentions=discord.AllowedMentions.none())
 
         if error_message:
-            return
+            return await send_response(gen.context, content=f":warning: Failed to generate image. {error_message}")
         
         try:
-            image_result = 
+            image_result = await self.api.download_image(gen.id)
+            metadata = ImageDataReader(image_result)
             file_id = gen.context.id if isinstance(gen.context, discord.Interaction) else gen.context.message.id
             file = discord.File(image_result, filename=f"image_{file_id}.png", spoiler=nsfw)
-            maxsize = await self.config.guild(guild).max_img2img()
-            view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
+            maxsize = await self.config.max_img2img()
+            view = ImageActions(self, metadata, gen.payload, gen.user, gen.channel, maxsize)
 
-            msg = await send_response(context, file=file, view=view, content=message_content, allowed_mentions=discord.AllowedMentions.none())
+            msg = await send_response(gen.context, file=file, view=view, content=gen.message_content, allowed_mentions=discord.AllowedMentions.none())
 
             asyncio.create_task(delete_button_after(msg))
-            if callback:
-                asyncio.create_task(callback)
 
             imagescanner = self.bot.get_cog("ImageScanner")
-            if imagescanner and response.extension == "png":
-                if channel.id in imagescanner.scan_channels:
-                    imagescanner.image_cache[msg.id] = ({0: response.info_string}, {0: response.data})
+            if imagescanner:
+                if gen.channel.id in imagescanner.scan_channels:  # type: ignore
+                    imagescanner.image_cache[msg.id] = ({0: metadata.raw or metadata.setting}, {0: image_result})  # type: ignore
                     try:
                         await msg.add_reaction("🔎")
                     except discord.NotFound:
@@ -160,8 +162,48 @@ class AImage(AImageConfig):
             raise
         else:
             await self.api.close_request(gen.id)
+        finally:
+            if gen.callback:
+                asyncio.create_task(gen.callback)
 
 
+    async def build_autocomplete_choices(self, current: str, choices: list) -> List[app_commands.Choice[str]]:
+        if not choices:
+            return []
+        choices = self.filter_list(choices, current)
+        return [app_commands.Choice(name=choice, value=choice) for choice in choices[:25]]
+
+    async def samplers_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        choices = self.autocomplete_cache.get("samplers", [])
+        return await self.build_autocomplete_choices(current, choices)
+
+    async def checkpoint_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        choices = self.autocomplete_cache.get("checkpoints", [])
+        return await self.build_autocomplete_choices(current, choices)
+
+    async def vae_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        choices = self.autocomplete_cache.get("vae", [])
+        return await self.build_autocomplete_choices(current, choices)
+    
+    async def loras_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        choices = self.autocomplete_cache.get("loras", [])
+        if not choices:
+            return []
+
+        weight = "1"
+        previous = ""
+        if current:
+            if m := re.search(r"^((?:<[^>]+>\s*)+)([^<>]+)$", current): # multiple loras
+                current = m.group(2)
+                previous = m.group(1) + " "
+            if m := re.search(r"^([^:]+):([+-]?\d*\.?\d+)$", current): # lora weight
+                current = m.group(1)
+                weight = m.group(2)
+
+        choices = self.filter_list(choices, current, True)
+        choices = [f"{previous}<lora:{choice}:{weight}>" if len(f"{previous}<lora:{choice}:{weight}>") <= 100 else f"<lora:{choice}:{weight}>" for choice in choices]
+        return [app_commands.Choice(name=choice, value=choice) for choice in choices][:25]
+    
 
     _parameter_descriptions = {
         "prompt": "The prompt to generate an image from.",
@@ -405,44 +447,6 @@ class AImage(AImageConfig):
         except commands.CommandError:
             can = False
         return can
-
-
-    async def build_autocomplete_choices(self, current: str, choices: list) -> List[app_commands.Choice[str]]:
-        if not choices:
-            return []
-        choices = self.filter_list(choices, current)
-        return [app_commands.Choice(name=choice, value=choice) for choice in choices[:25]]
-
-    async def samplers_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        choices = self.autocomplete_cache.get("samplers", [])
-        return await self.build_autocomplete_choices(current, choices)
-
-    async def checkpoint_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        choices = self.autocomplete_cache.get("checkpoints", [])
-        return await self.build_autocomplete_choices(current, choices)
-
-    async def vae_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        choices = self.autocomplete_cache.get("vae", [])
-        return await self.build_autocomplete_choices(current, choices)
-    
-    async def loras_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        choices = self.autocomplete_cache.get("loras", [])
-        if not choices:
-            return []
-
-        weight = "1"
-        previous = ""
-        if current:
-            if m := re.search(r"^((?:<[^>]+>\s*)+)([^<>]+)$", current): # multiple loras
-                current = m.group(2)
-                previous = m.group(1) + " "
-            if m := re.search(r"^([^:]+):([+-]?\d*\.?\d+)$", current): # lora weight
-                current = m.group(1)
-                weight = m.group(2)
-
-        choices = self.filter_list(choices, current, True)
-        choices = [f"{previous}<lora:{choice}:{weight}>" if len(f"{previous}<lora:{choice}:{weight}>") <= 100 else f"<lora:{choice}:{weight}>" for choice in choices]
-        return [app_commands.Choice(name=choice, value=choice) for choice in choices][:25]
 
     @staticmethod
     def filter_list(options: list, current: str, strict: bool = False):

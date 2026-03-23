@@ -4,17 +4,17 @@ from typing import Optional
 
 import discord
 from redbot.core.bot import Red
+from sd_prompt_reader.image_data_reader import ImageDataReader
 
 from aimage.base import AImageBase
 from aimage.constants import PARAM_GROUP_REGEX, PARAM_REGEX, PARAMS_BLACKLIST, VIEW_TIMEOUT
 from aimage.helpers import delete_button_after
-from aimage.views.params import ParamsView
 
 
 class ImageActions(discord.ui.View):
-    def __init__(self, cog: AImageBase, image_info: str, payload: dict, author: discord.Member, channel: discord.TextChannel, maxsize: int):
+    def __init__(self, cog: AImageBase, metadata: ImageDataReader, payload: dict, author: discord.Member, channel: discord.abc.MessageableChannel, maxsize: int):
         super().__init__(timeout=VIEW_TIMEOUT)
-        self.info_string = image_info
+        self.metadata = metadata
         self.payload = payload
         self.bot: Red = cog.bot
         self.config = cog.config
@@ -39,8 +39,7 @@ class ImageActions(discord.ui.View):
         if not payload.get("enable_hr", False):
             self.add_item(self.button_modify)
             self.add_item(self.button_variation)
-            if not payload.get("init_images", []) and "AI Horde" not in self.info_string \
-                    and self.payload["width"]*self.payload["height"]*1.1 < maxsize*maxsize:
+            if self.payload["width"]*self.payload["height"]*1.1 < maxsize*maxsize:
                 self.add_item(self.button_upscale)
         self.add_item(self.button_delete)
 
@@ -48,12 +47,11 @@ class ImageActions(discord.ui.View):
     async def get_caption(self, interaction: discord.Interaction):
         embed = await self.get_params_embed()
         if embed:
-            view = ParamsView(self.info_string, interaction)
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             msg = await interaction.original_response()
             asyncio.create_task(delete_button_after(msg))
         else:
-            await interaction.response.send_message(f'Parameters for this image:\n```yaml\n{self.info_string}```')
+            await interaction.response.send_message(f'Parameters for this image:\n```yaml\n{self.metadata}```')
 
 
     async def modify_image(self, interaction: discord.Interaction):
@@ -98,25 +96,24 @@ class ImageActions(discord.ui.View):
 
 
     def get_params_dict(self) -> Optional[dict]:
-        if "Steps: " not in self.info_string:
-            return None
         output_dict = OrderedDict()
-        prompts, params = self.info_string.rsplit("Steps: ", 1)
-        try:
-            output_dict["Prompt"], output_dict["Negative Prompt"] = prompts.rsplit("Negative prompt: ", 1)
-        except:
-            output_dict["Prompt"] = prompts
-        params = f"Steps: {params},"
-        params = PARAM_GROUP_REGEX.sub("", params)
-        param_list = PARAM_REGEX.findall(params)
-        for key, value in param_list:
+        for key, value in self.metadata.parameter.items():
             if len(output_dict) > 24 or any(blacklisted in key for blacklisted in PARAMS_BLACKLIST):
                 continue
             output_dict[key] = value
         for key in output_dict:
             if len(output_dict[key]) > 1000:
                 output_dict[key] = output_dict[key][:1000] + "..."
-        return output_dict
+
+        reordered_dict = OrderedDict()
+        for key, value in output_dict.items():
+            if "Prompt" in key:
+                reordered_dict[key] = value
+        for key, value in output_dict.items():
+            if "Prompt" not in key:
+                reordered_dict[key] = value
+
+        return reordered_dict
 
 
     async def get_params_embed(self) -> Optional[discord.Embed]:

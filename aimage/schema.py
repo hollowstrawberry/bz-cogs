@@ -8,6 +8,7 @@ from discord.ext import commands
 @dataclass
 class QueuedImageGen:
     id: str
+    payload: dict
     user: discord.Member
     channel: discord.abc.MessageableChannel
     context: Union[commands.Context, discord.Interaction]
