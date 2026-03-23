@@ -62,7 +62,8 @@ class AImage(AImageConfig):
     async def cog_load(self):
         await self.bot.wait_until_red_ready()
         endpoint = await self.config.endpoint()
-        self.api = ArcEnCielAPI(self, endpoint)
+        api_key = (await self.bot.get_shared_api_tokens("arcenciel")).get("api_key", "")
+        self.api = ArcEnCielAPI(self, endpoint, api_key)
         asyncio.create_task(self.api.update_autocomplete_cache())
         self.consume_queue.start()
 

@@ -47,12 +47,3 @@ async def delete_button_after(msg: discord.Message):
         await msg.edit(view=None)
     except Exception:
         return
-
-
-def get_auth(auth_str: str):
-    """ Format auth string to aiohttp.BasicAuth """
-    auth = None
-    if auth_str:
-        username, password = auth_str.split(':')
-        auth = aiohttp.BasicAuth(username, password)
-    return auth
