@@ -1,12 +1,13 @@
+import asyncio
 from abc import ABC
-from typing import Union
+from typing import Coroutine, Optional, Union, List, Dict
+from aiohttp import ClientSession
 
 import discord
-from aiohttp import ClientSession
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 
-from aimage.apis.base_api import BaseAPI
+from aimage.schema import ImageGenParams, QueuedImageGen
 
 
 class CompositeMetaClass(type(commands.Cog), type(ABC)):
@@ -17,17 +18,29 @@ class MixinMeta(ABC):
     bot: Red
     config: Config
     session: ClientSession
-    generating: dict
     autocomplete_cache: dict
+    queued_images: Dict[str, QueuedImageGen]
+    queue_task: discord.Optional[asyncio.Task]
+    endpoint: str
 
     def __init__(self, *args):
         pass
 
-    async def generate_image(self, *args, **kwargs):
+    async def generate_image(self,
+                             context: Union[commands.Context, discord.Interaction],
+                             payload: dict = None,
+                             params: ImageGenParams = None,
+                             callback: Optional[Coroutine] = None,
+                             message_content: Optional[str] = None
+                             ) -> None:
         raise NotImplementedError
 
-    async def get_api_instance(self, ctx: Union[commands.Context, discord.Interaction]) -> BaseAPI:
+    async def request_image(self,
+                            context: Union[commands.Context, discord.Interaction],
+                            params: Optional[ImageGenParams],
+                            payload: Optional[dict]
+                            ) -> dict:
         raise NotImplementedError
 
-    async def _update_autocomplete_cache(self, guild: discord.Guild):
+    async def update_autocomplete_cache(self, *args, **kwargs):
         raise NotImplementedError

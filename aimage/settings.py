@@ -8,7 +8,7 @@ from redbot.core.utils.menus import SimpleMenu # type: ignore
 
 from aimage.abc import MixinMeta
 from aimage.apis.webui_api import WebuiAPI
-from aimage.common.helpers import delete_button_after
+from aimage.helpers import delete_button_after
 
 log = logging.getLogger("red.bz_cogs.aimage")
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 import re
 import logging
 import asyncio
@@ -8,15 +9,16 @@ from typing import Coroutine, List, Optional, Union
 from collections import defaultdict
 from rapidfuzz import fuzz
 
+from discord.ext import tasks
 from redbot.core import Config, app_commands, checks, commands
 from redbot.core.bot import Red
 
 from aimage.abc import CompositeMetaClass
-from aimage.common.constants import DEFAULT_BADWORDS_BLACKLIST, DEFAULT_NEGATIVE_PROMPT, DEFAULT_TAGGER, DEFAULT_THRESHOLD
-from aimage.common.helpers import send_response, clean_tag
-from aimage.common.params import ImageGenParams
+from aimage.constants import DEFAULT_NEGATIVE_PROMPT, DEFAULT_TAGGER, DEFAULT_THRESHOLD
+from aimage.helpers import send_response, clean_tag
+from aimage.schema import ImageGenParams, QueuedImageGen
 from aimage.image_handler import ImageHandler
-from aimage.apis.webui_api import WebuiAPI
+from aimage.arcenciel_api import ArcEnCielAPI
 from aimage.settings import Settings
 
 log = logging.getLogger("red.bz_cogs.aimage")
@@ -24,6 +26,7 @@ log = logging.getLogger("red.bz_cogs.aimage")
 
 class AImage(Settings,
              ImageHandler,
+             ArcEnCielAPI,
              commands.Cog,
              metaclass=CompositeMetaClass):
     """ Generate AI images using a A1111 endpoint """
@@ -32,15 +35,14 @@ class AImage(Settings,
         super().__init__()
         self.bot: Red = bot
         self.config = Config.get_conf(self, identifier=75567113)
+        self.session = aiohttp.ClientSession()
+        self.autocomplete_cache = defaultdict(dict)
+        self.queued_images = {}
 
-        self.queue: List[Coroutine] = []
-        self.queue_task: Optional[asyncio.Task] = None
-
-        default_guild = {
+        default_global = {
             "endpoint": None,
             "nsfw": True,
             "nsfw_tuning": -0.025,
-            "words_blacklist": DEFAULT_BADWORDS_BLACKLIST,
             "blacklist_regex": "",
             "negative_prompt": DEFAULT_NEGATIVE_PROMPT,
             "cfg": 5,
@@ -56,58 +58,115 @@ class AImage(Settings,
             "auth": None,
             "headers": "",
             "scheduler": "Automatic",
+        }
+        default_guild = {
             "vip_role": -1,
         }
-
         default_member = {
             "checkpoint": "",
         }
-
-        self.session = aiohttp.ClientSession()
-        self.generating = defaultdict(lambda: False)
-        self.autocomplete_cache = defaultdict(dict)
-
         self.config.register_guild(**default_guild)
         self.config.register_member(**default_member)
+        self.config.register_global(**default_global)
 
     async def cog_load(self):
-        asyncio.create_task(self.load_all_autocomplete_caches())
+        asyncio.create_task(self.load_autocomplete_cache())
 
     async def cog_unload(self):
         await self.session.close()
 
-    async def load_all_autocomplete_caches(self):
+    async def load_autocomplete_cache(self):
         await self.bot.wait_until_red_ready()
-        all_guilds = await self.config.all_guilds()
-        endpoint_to_cache = {}
-        for gid, data in all_guilds.items():
-            endpoint = data["endpoint"]
-            if not endpoint:
-                continue
-            if endpoint in endpoint_to_cache:
-                self.autocomplete_cache[gid] = endpoint_to_cache[endpoint]
-                log.info(f"Copied autocomplete cache from {endpoint} to guild {gid}")
-            else:
-                guild = self.bot.get_guild(gid)
-                if guild:
-                    await self._update_autocomplete_cache(guild)
-                    endpoint_to_cache[endpoint] = self.autocomplete_cache[gid]
-                    log.info(f"Created autocomplete cache for guild {gid} and endpoint {endpoint}")
+        await self.update_autocomplete_cache()
+        log.info(f"Created autocomplete cache for endpoint {self.endpoint}")
 
-    # Some webuis can get overloaded with multiple requests, so we send one at a time
+
+    @tasks.loop(seconds=1, reconnect=True)
     async def consume_queue(self):
-        while self.queue:
+        jobs = await self.fetch_queue()
+        for job in jobs:
+            if job["id"] in self.queued_images:
+                queued_image = self.queued_images[job["id"]]
+                if job["status"] in ["completed", "failed"]:
+                    asyncio.create_task(self.finalize_image_generation(
+                        queued_image.context or queued_image.interaction,
+                        None,
+
+                    ))
+
+
+        while self.queued_images:
             try:
                 task = self.queue.pop(0)
                 await task
             except Exception:  # noqa, reason: don't crash the task
                 log.exception("aimage task queue")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
+
 
     def queue_add(self, task: Coroutine):
         self.queue.append(task)
         if not self.queue_task or self.queue_task.done():
             self.queue_task = asyncio.create_task(self.consume_queue())
+
+
+    async def generate_image(self,
+                             context: Union[commands.Context, discord.Interaction],
+                             payload: dict = None,
+                             params: ImageGenParams = None,
+                             callback: Optional[Coroutine] = None,
+                             message_content: Optional[str] = None):
+        
+        payload = payload or {}
+        user = context.user if isinstance(context, discord.Interaction) else context.author
+        assert context.guild and isinstance(user, discord.Member)
+
+        if isinstance(context, discord.Interaction):
+            await context.response.defer(thinking=True)
+        else:
+            await context.message.add_reaction("⏳")
+
+        job = await self.request_image(context, params, payload)
+        self.queued_images[job["id"]] = QueuedImageGen(job["id"], user, context, callback, message_content)
+
+        vip_role = await self.config.guild(context.guild).vip_role()
+        if self.generating[user.id] and all(role.id != vip_role for role in user.roles):
+            content = ":warning: You must wait for your current image to finish generating before you can request a new one."
+            return await send_response(context, content=content, ephemeral=True)
+
+        prompt = params.prompt if params else payload.get("prompt", "")
+
+        if await self._contains_blacklisted_word(guild, prompt):
+            return await send_response(context, content=":warning: Blocked prompt.")
+        
+        log.info(f"Queueing generation, {user.name=}")
+        self.queue_add(self.finalize_image_generation(context, payload, params, callback, message_content))
+
+
+    async def finalize_image_generation(self, gen: QueuedImageGen):
+        if response.is_nsfw and not channel.is_nsfw():
+            return await send_response(context, content=f"🔞 Blocked NSFW image.", allowed_mentions=discord.AllowedMentions.none())
+
+        id = context.id if isinstance(context, discord.Interaction) else context.message.id
+        file = discord.File(io.BytesIO(response.data or b''), filename=f"image_{id}.{response.extension}", spoiler=response.is_nsfw)
+        maxsize = await self.config.guild(guild).max_img2img()
+        view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
+
+        msg = await send_response(context, file=file, view=view, content=message_content, allowed_mentions=discord.AllowedMentions.none())
+
+        asyncio.create_task(delete_button_after(msg))
+        if callback:
+            asyncio.create_task(callback)
+
+        imagescanner = self.bot.get_cog("ImageScanner")
+        if imagescanner and response.extension == "png":
+            if channel.id in imagescanner.scan_channels:
+                imagescanner.image_cache[msg.id] = ({0: response.info_string}, {0: response.data})
+                try:
+                    await msg.add_reaction("🔎")
+                except discord.NotFound:
+                    pass
+
 
     async def object_autocomplete(self, interaction: discord.Interaction, current: str, choices: list) -> List[app_commands.Choice[str]]:
         if not choices:
@@ -374,36 +433,6 @@ class AImage(Settings,
             embed.set_thumbnail(url=attachment.url)
             embed.description = ", ".join([f"`{clean_tag(tag)}`" for tag in tags])
             await ctx.reply(embed=embed, allowed_mentions=discord.AllowedMentions.none())
-
-
-    async def generate_image(self,
-                             context: Union[commands.Context, discord.Interaction],
-                             payload: dict = None,
-                             params: ImageGenParams = None,
-                             callback: Optional[Coroutine] = None,
-                             message_content: Optional[str] = None):
-        
-        if not isinstance(context, discord.Interaction):
-            await context.message.add_reaction("⏳")
-
-        payload = payload or {}
-        guild = context.guild
-        channel = context.channel
-        user = context.user if isinstance(context, discord.Interaction) else context.author
-        assert guild and isinstance(channel, discord.TextChannel) and isinstance(user, discord.Member)
-
-        vip_role = await self.config.guild(guild).vip_role()
-        if self.generating[user.id] and all(role.id != vip_role for role in user.roles):
-            content = ":warning: You must wait for your current image to finish generating before you can request a new one."
-            return await send_response(context, content=content, ephemeral=True)
-
-        prompt = params.prompt if params else payload.get("prompt", "")
-
-        if await self._contains_blacklisted_word(guild, prompt):
-            return await send_response(context, content=":warning: Blocked prompt.")
-        
-        log.info(f"Queueing generation, {user.name=}")
-        self.queue_add(self._execute_image_generation(context, payload, params, callback, message_content))
 
     async def _contains_blacklisted_word(self, guild: discord.Guild, prompt: str):
         blacklist_regex = await self.config.guild(guild).blacklist_regex()

@@ -6,8 +6,8 @@ import discord
 from redbot.core.bot import Red
 
 from aimage.abc import MixinMeta
-from aimage.common.constants import PARAM_GROUP_REGEX, PARAM_REGEX, PARAMS_BLACKLIST, VIEW_TIMEOUT
-from aimage.common.helpers import delete_button_after
+from aimage.constants import PARAM_GROUP_REGEX, PARAM_REGEX, PARAMS_BLACKLIST, VIEW_TIMEOUT
+from aimage.helpers import delete_button_after
 from aimage.views.params import ParamsView
 
 

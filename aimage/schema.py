@@ -1,6 +1,25 @@
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Coroutine, Optional, Union
 
+import discord
+from discord.ext import commands
+
+
+@dataclass
+class QueuedImageGen:
+    id: str
+    user: discord.Member
+    context: Union[commands.Context, discord.Interaction]
+    callback: Optional[Coroutine]
+    message_content: Optional[str]
+
+@dataclass
+class ImageResponse:
+    data: Optional[bytes] = None
+    payload: dict = field(default_factory=dict)
+    is_nsfw: bool = False
+    info_string: str = ""
+    extension: str = "png"
 
 @dataclass
 class ImageGenParams:

@@ -3,7 +3,7 @@ import discord
 import discord.ui as ui
 from copy import deepcopy
 
-from aimage.common.constants import ADETAILER_ARGS
+from aimage.constants import ADETAILER_ARGS
 from aimage.views.image_actions import ImageActions
 
 
