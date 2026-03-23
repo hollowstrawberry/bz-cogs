@@ -6,14 +6,13 @@ import discord
 from redbot.core import checks, commands
 from redbot.core.utils.menus import SimpleMenu # type: ignore
 
-from aimage.abc import MixinMeta
-from aimage.apis.webui_api import WebuiAPI
+from aimage.base import AImageBase
 from aimage.helpers import delete_button_after
 
 log = logging.getLogger("red.bz_cogs.aimage")
 
 
-class Settings(MixinMeta):
+class AImageConfig(AImageBase):
 
     @commands.command(name="ckpt") # type: ignore
     async def member_checkpoint(self, ctx: commands.Context, *, checkpoint: Optional[str]):
@@ -30,7 +29,7 @@ class Settings(MixinMeta):
             return await self.config.member(ctx.author).checkpoint.set("")
 
         await ctx.message.add_reaction("🔄")
-        data = self.autocomplete_cache[ctx.guild.id].get("checkpoints") or []
+        data = self.autocomplete_cache.get("checkpoints") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
         
         if checkpoint not in data:
@@ -122,7 +121,7 @@ class Settings(MixinMeta):
         nsfw = await self.config.guild(ctx.guild).nsfw()
         if nsfw:
             await ctx.message.add_reaction("🔄")
-            data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
+            data = self.autocomplete_cache.get("scripts") or []
             await ctx.message.remove_reaction("🔄", ctx.me)
             if "censorscript" not in data:
                 return await ctx.send(":warning: sd-webui-nsfw-checker is not installed in webui, install <https://github.com/hollowstrawberry/sd-webui-nsfw-checker>")
@@ -143,27 +142,12 @@ class Settings(MixinMeta):
         elif value < -0.2 or value > 0.2:
             await ctx.send(f"Valid values are between -0.2 and 0.2")
         else:
-            data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
+            data = self.autocomplete_cache.get("scripts") or []
             if "censorscript" not in data:
                 await ctx.send("You need [the updated CensorScript.py](<https://github.com/hollowstrawberry/sd-webui-nsfw-checker>) in your A1111 to use this.")
             else:
                 await self.config.guild(ctx.guild).nsfw_tuning.set(value)
                 await ctx.send(f"The sensitivity is now set to `{value:.3f}`")
-
-    @aimage.command(name="forceclose")
-    async def forceclose(self, ctx: commands.Context):
-        """
-        Sends a signal to force close the webui. Needs this extension to work: https://github.com/hollowstrawberry/sd-webui-force-close
-        """
-        instance = WebuiAPI(self, ctx)
-        await instance._init()
-        try:
-            await instance.force_close()
-        except Exception:
-            log.error("Trying to force close webui", exc_info=True)
-            await ctx.reply("Force close did not work.")
-        else:
-            await ctx.tick(message="✅ Force close initiated.")
 
     @aimage.command(name="negative_prompt")
     async def negative_prompt(self, ctx: commands.Context, *, negative_prompt: Optional[str]):
@@ -201,7 +185,7 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         await ctx.message.add_reaction("🔄")
-        samplers = self.autocomplete_cache[ctx.guild.id].get("samplers") or []
+        samplers = self.autocomplete_cache.get("samplers") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
 
         if sampler not in samplers:
@@ -217,7 +201,7 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         await ctx.message.add_reaction("🔄")
-        schedulers = self.autocomplete_cache[ctx.guild.id].get("schedulers") or []
+        schedulers = self.autocomplete_cache.get("schedulers") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
 
         if scheduler not in schedulers:
@@ -267,7 +251,7 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         await ctx.message.add_reaction("🔄")
-        data = self.autocomplete_cache[ctx.guild.id].get("checkpoints") or []
+        data = self.autocomplete_cache.get("checkpoints") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
         
         if checkpoint not in data:
@@ -292,7 +276,7 @@ class Settings(MixinMeta):
         """
         assert ctx.guild
         await ctx.message.add_reaction("🔄")
-        data = self.autocomplete_cache[ctx.guild.id].get("vaes") or []
+        data = self.autocomplete_cache.get("vaes") or []
         await ctx.message.remove_reaction("🔄", ctx.me)
         if vae not in data:
             vaes = []
@@ -309,65 +293,15 @@ class Settings(MixinMeta):
         await self.config.guild(ctx.guild).vae.set(vae)
         await ctx.tick(message="✅ Default VAE updated.")
 
-    @aimage.command(name="auth")
-    async def auth(self, ctx: commands.Context, *, auth: str):
-        """
-        Sets the account from A1111 host flag `--api-auth` in this format `username:password` 
-        """
-        assert ctx.guild
-        try:
-            await ctx.message.delete()
-        except Exception:
-            pass
-        await self.config.guild(ctx.guild).auth.set(auth)
-        await ctx.send("✅ Auth set.")
-
-    @aimage.command(name="headers")
-    async def headers(self, ctx: commands.Context, *, headers: str):
-        """
-        Sets the headers for the requests to the webui
-        """
-        assert ctx.guild
-        try:
-            await ctx.message.delete()
-        except Exception:
-            pass
-        await self.config.guild(ctx.guild).headers.set(headers)
-        await ctx.send("✅ Headers set.")
-
     @aimage.command(name="adetailer")
     async def adetailer(self, ctx: commands.Context):
         """
-        Whether to use face `adetailer` A1111 extension on generated pictures, which improves quality.
+        Whether to use face adetailer, which improves quality.
         """
         assert ctx.guild
-        new = not await self.config.guild(ctx.guild).adetailer()
-        if new:
-            await ctx.message.add_reaction("🔄")
-            data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
-            await ctx.message.remove_reaction("🔄", ctx.me)
-            if "adetailer" not in data:
-                return await ctx.send(":warning: The ADetailer script is not installed in A1111, install [this.](<https://github.com/Bing-su/adetailer>)")
-
-        await self.config.guild(ctx.guild).adetailer.set(new)
+        new = not await self.config.adetailer()
+        await self.config.adetailer.set(new)
         await ctx.send(f"ADetailer is now {'`disabled`' if not new else '`enabled`'}")
-
-    @aimage.command(name="tiledvae")
-    async def tiledvae(self, ctx: commands.Context):
-        """
-        Whether to use tiled vae on generated pictures from A1111 hosts, which is used to prevent out of memory errors.
-        """
-        assert ctx.guild
-        new = not await self.config.guild(ctx.guild).tiledvae()
-        if new:
-            await ctx.message.add_reaction("🔄")
-            data = self.autocomplete_cache[ctx.guild.id].get("scripts") or []
-            await ctx.message.remove_reaction("🔄", ctx.me)
-            if "tiled vae" not in data:
-                return await ctx.send(":warning: The Tiled VAE script is not installed in A1111, install [this.](<https://github.com/pkuliyi2015/multidiffusion-upscaler-for-automatic1111>)")
-
-        await self.config.guild(ctx.guild).tiledvae.set(new)
-        await ctx.send(f"Tiled VAE is now {'`disabled`' if not new else '`enabled`'}")
 
     @aimage.group(name="blacklist")
     async def blacklist(self, _: commands.Context):
@@ -476,7 +410,7 @@ class Settings(MixinMeta):
         Updates the autocomplete cache
         """
         assert ctx.guild
-        await self._update_autocomplete_cache(ctx.guild)
+        await self.update_autocomplete_cache(ctx.guild)
         await ctx.message.add_reaction("✅")
         
     @aimage.group()

@@ -34,7 +34,7 @@ def clean_tag(tag: str) -> str:
     else:
         return tag
     
-def clean_model_prefix(name: str) -> str:
+def clean_model(name: str) -> str:
     name = UUID_PREFIX_REGEX.sub("", name)
     name = NUMERIC_PREFIX_REGEX.sub("", name)
     return name

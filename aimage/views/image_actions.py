@@ -5,14 +5,14 @@ from typing import Optional
 import discord
 from redbot.core.bot import Red
 
-from aimage.abc import MixinMeta
+from aimage.base import AImageBase
 from aimage.constants import PARAM_GROUP_REGEX, PARAM_REGEX, PARAMS_BLACKLIST, VIEW_TIMEOUT
 from aimage.helpers import delete_button_after
 from aimage.views.params import ParamsView
 
 
 class ImageActions(discord.ui.View):
-    def __init__(self, cog: MixinMeta, image_info: str, payload: dict, author: discord.Member, channel: discord.TextChannel, maxsize: int):
+    def __init__(self, cog: AImageBase, image_info: str, payload: dict, author: discord.Member, channel: discord.TextChannel, maxsize: int):
         super().__init__(timeout=VIEW_TIMEOUT)
         self.info_string = image_info
         self.payload = payload

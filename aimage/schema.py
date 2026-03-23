@@ -9,6 +9,7 @@ from discord.ext import commands
 class QueuedImageGen:
     id: str
     user: discord.Member
+    channel: discord.abc.MessageableChannel
     context: Union[commands.Context, discord.Interaction]
     callback: Optional[Coroutine]
     message_content: Optional[str]

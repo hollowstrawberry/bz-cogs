@@ -6,38 +6,26 @@ import aiohttp
 import discord
 from copy import copy
 from typing import Coroutine, List, Optional, Union
-from collections import defaultdict
 from rapidfuzz import fuzz
 
 from discord.ext import tasks
-from redbot.core import Config, app_commands, checks, commands
-from redbot.core.bot import Red
+from redbot.core import app_commands, checks, commands
 
-from aimage.abc import CompositeMetaClass
-from aimage.constants import DEFAULT_NEGATIVE_PROMPT, DEFAULT_TAGGER, DEFAULT_THRESHOLD
-from aimage.helpers import send_response, clean_tag
-from aimage.schema import ImageGenParams, QueuedImageGen
-from aimage.image_handler import ImageHandler
 from aimage.arcenciel_api import ArcEnCielAPI
-from aimage.settings import Settings
+from aimage.constants import DEFAULT_NEGATIVE_PROMPT, DEFAULT_TAGGER, DEFAULT_THRESHOLD
+from aimage.helpers import is_nsfw, send_response, clean_tag
+from aimage.schema import ImageGenParams, QueuedImageGen
+from aimage.config import AImageConfig
 
 log = logging.getLogger("red.bz_cogs.aimage")
 
 
-class AImage(Settings,
-             ImageHandler,
-             ArcEnCielAPI,
-             commands.Cog,
-             metaclass=CompositeMetaClass):
+class AImage(AImageConfig):
     """ Generate AI images using a A1111 endpoint """
 
     def __init__(self, bot):
-        super().__init__()
-        self.bot: Red = bot
-        self.config = Config.get_conf(self, identifier=75567113)
-        self.session = aiohttp.ClientSession()
-        self.autocomplete_cache = defaultdict(dict)
-        self.queued_images = {}
+        super().__init__(bot)
+        self.api: Optional[ArcEnCielAPI] = None
 
         default_global = {
             "endpoint": None,
@@ -70,44 +58,35 @@ class AImage(Settings,
         self.config.register_global(**default_global)
 
     async def cog_load(self):
-        asyncio.create_task(self.load_autocomplete_cache())
+        await self.bot.wait_until_red_ready()
+        endpoint = await self.config.endpoint()
+        self.api = ArcEnCielAPI(self, endpoint)
+        asyncio.create_task(self.api.update_autocomplete_cache())
+        self.consume_queue.start()
 
     async def cog_unload(self):
-        await self.session.close()
-
-    async def load_autocomplete_cache(self):
-        await self.bot.wait_until_red_ready()
-        await self.update_autocomplete_cache()
-        log.info(f"Created autocomplete cache for endpoint {self.endpoint}")
+        if self.consume_queue.is_running():
+            self.consume_queue.stop()
+        if self.api:
+            await self.api.session.close()
 
 
     @tasks.loop(seconds=1, reconnect=True)
     async def consume_queue(self):
-        jobs = await self.fetch_queue()
+        assert self.api
+        if not self.queued_images:
+            return
+        jobs = await self.api.fetch_queue()
         for job in jobs:
-            if job["id"] in self.queued_images:
-                queued_image = self.queued_images[job["id"]]
-                if job["status"] in ["completed", "failed"]:
-                    asyncio.create_task(self.finalize_image_generation(
-                        queued_image.context or queued_image.interaction,
-                        None,
-
-                    ))
-
-
-        while self.queued_images:
-            try:
-                task = self.queue.pop(0)
-                await task
-            except Exception:  # noqa, reason: don't crash the task
-                log.exception("aimage task queue")
-            await asyncio.sleep(1)
-
-
-    def queue_add(self, task: Coroutine):
-        self.queue.append(task)
-        if not self.queue_task or self.queue_task.done():
-            self.queue_task = asyncio.create_task(self.consume_queue())
+            if job["id"] in self.queued_images and job["status"] in ["completed", "failed"]:
+                gen = self.queued_images[job["id"]]
+                del self.queued_images[job["id"]]
+                nsfw = list(job["safety"]["outputs"].values())[0]["rating"] in ["sensitive", "explicit"]
+                success = job["status"] == "completed"
+                error_message = None
+                if not success:
+                    error_message = f"`Reason: {job['safety']['reason'] or 'none'}`" f"`Error: {job['safety']['error'] or 'none'}`"
+                asyncio.create_task(self.finalize_image_generation(gen, nsfw, error_message))
 
 
     async def generate_image(self,
@@ -119,105 +98,70 @@ class AImage(Settings,
         
         payload = payload or {}
         user = context.user if isinstance(context, discord.Interaction) else context.author
-        assert context.guild and isinstance(user, discord.Member)
+        channel = context.channel
+        assert self.api and context.guild and isinstance(user, discord.Member) and isinstance(channel, discord.abc.MessageableChannel)
+
+        vip_role = await self.config.guild(context.guild).vip_role()
+        if any(gen.user == user for gen in self.queued_images.values()) and all(role.id != vip_role for role in user.roles):
+            content = ":warning: You must wait for your current image to finish generating before you can request a new one."
+            return await send_response(context, content=content, ephemeral=True)
+
+        prompt = params.prompt if params else payload.get("prompt", "")
+
+        if await self.contains_blacklisted_word(prompt):
+            return await send_response(context, content=":warning: Blocked prompt.")
 
         if isinstance(context, discord.Interaction):
             await context.response.defer(thinking=True)
         else:
             await context.message.add_reaction("⏳")
 
-        job = await self.request_image(context, params, payload)
-        self.queued_images[job["id"]] = QueuedImageGen(job["id"], user, context, callback, message_content)
+        try:
+            job = await self.api.request_image(context, params, payload)
+            self.queued_images[job["id"]] = QueuedImageGen(job["id"], user, channel, context, callback, message_content)
+        except Exception as error:
+            content = f":warning: There was a problem generating the image! `{type(error).__name__}: {error}`"
+            asyncio.create_task(send_response(context, content=content))
+            raise
 
-        vip_role = await self.config.guild(context.guild).vip_role()
-        if self.generating[user.id] and all(role.id != vip_role for role in user.roles):
-            content = ":warning: You must wait for your current image to finish generating before you can request a new one."
-            return await send_response(context, content=content, ephemeral=True)
 
-        prompt = params.prompt if params else payload.get("prompt", "")
+    async def finalize_image_generation(self, gen: QueuedImageGen, nsfw: bool, error_message: Optional[str]):
+        assert self.api and isinstance(gen.context, (commands.Context, discord.Interaction))
 
-        if await self._contains_blacklisted_word(guild, prompt):
-            return await send_response(context, content=":warning: Blocked prompt.")
+        if nsfw and not is_nsfw(gen.channel):
+            return await send_response(gen.context, content=f"🔞 Blocked NSFW image.", allowed_mentions=discord.AllowedMentions.none())
+
+        if error_message:
+            return
         
-        log.info(f"Queueing generation, {user.name=}")
-        self.queue_add(self.finalize_image_generation(context, payload, params, callback, message_content))
+        try:
+            image_result = 
+            file_id = gen.context.id if isinstance(gen.context, discord.Interaction) else gen.context.message.id
+            file = discord.File(image_result, filename=f"image_{file_id}.png", spoiler=nsfw)
+            maxsize = await self.config.guild(guild).max_img2img()
+            view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
+
+            msg = await send_response(context, file=file, view=view, content=message_content, allowed_mentions=discord.AllowedMentions.none())
+
+            asyncio.create_task(delete_button_after(msg))
+            if callback:
+                asyncio.create_task(callback)
+
+            imagescanner = self.bot.get_cog("ImageScanner")
+            if imagescanner and response.extension == "png":
+                if channel.id in imagescanner.scan_channels:
+                    imagescanner.image_cache[msg.id] = ({0: response.info_string}, {0: response.data})
+                    try:
+                        await msg.add_reaction("🔎")
+                    except discord.NotFound:
+                        pass
+
+        except Exception:
+            raise
+        else:
+            await self.api.close_request(gen.id)
 
 
-    async def finalize_image_generation(self, gen: QueuedImageGen):
-        if response.is_nsfw and not channel.is_nsfw():
-            return await send_response(context, content=f"🔞 Blocked NSFW image.", allowed_mentions=discord.AllowedMentions.none())
-
-        id = context.id if isinstance(context, discord.Interaction) else context.message.id
-        file = discord.File(io.BytesIO(response.data or b''), filename=f"image_{id}.{response.extension}", spoiler=response.is_nsfw)
-        maxsize = await self.config.guild(guild).max_img2img()
-        view = ImageActions(self, response.info_string, response.payload, user, channel, maxsize)
-
-        msg = await send_response(context, file=file, view=view, content=message_content, allowed_mentions=discord.AllowedMentions.none())
-
-        asyncio.create_task(delete_button_after(msg))
-        if callback:
-            asyncio.create_task(callback)
-
-        imagescanner = self.bot.get_cog("ImageScanner")
-        if imagescanner and response.extension == "png":
-            if channel.id in imagescanner.scan_channels:
-                imagescanner.image_cache[msg.id] = ({0: response.info_string}, {0: response.data})
-                try:
-                    await msg.add_reaction("🔎")
-                except discord.NotFound:
-                    pass
-
-
-    async def object_autocomplete(self, interaction: discord.Interaction, current: str, choices: list) -> List[app_commands.Choice[str]]:
-        if not choices:
-            #await self._update_autocomplete_cache(interaction)
-            return []
-        choices = self.filter_list(choices, current)
-        return [app_commands.Choice(name=choice, value=choice) for choice in choices[:25]]
-
-    async def samplers_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        choices = self.autocomplete_cache[interaction.guild_id].get("samplers") or []
-        return await self.object_autocomplete(interaction, current, choices)
-
-    async def loras_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        choices = self.autocomplete_cache[interaction.guild_id].get("loras") or []
-
-        if not choices:
-            #await self._update_autocomplete_cache(interaction)
-            return []
-
-        weight = "1"
-        previous = ""
-        if current:
-            if m := re.search(r"^((?:<[^>]+>\s*)+)([^<>]+)$", current): # multiple loras
-                current = m.group(2)
-                previous = m.group(1) + " "
-            if m := re.search(r"^([^:]+):([+-]?\d*\.?\d+)$", current): # lora weight
-                current = m.group(1)
-                weight = m.group(2)
-
-        choices = self.filter_list(choices, current, True)
-        choices = [f"{previous}<lora:{choice}:{weight}>" if len(f"{previous}<lora:{choice}:{weight}>") <= 100 else f"<lora:{choice}:{weight}>" for choice in choices]
-        return [app_commands.Choice(name=choice, value=choice) for choice in choices][:25]
-
-    async def checkpoint_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        choices = self.autocomplete_cache[interaction.guild_id].get("checkpoints") or []
-        return await self.object_autocomplete(interaction, current, choices)
-
-    async def vae_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-        choices = self.autocomplete_cache[interaction.guild_id].get("vaes") or []
-        return await self.object_autocomplete(interaction, current, choices)
-
-    @staticmethod
-    def filter_list(options: list, current: str, strict: bool = False):
-        results = []
-        ratios = [(item, fuzz.partial_ratio(current.lower(), item.lower())) for item in options]
-        sorted_options = sorted(ratios, key=lambda x: x[1], reverse=True)
-        for item, ratio in sorted_options:
-            if strict and ratio < 75:
-                continue
-            results.append(item)
-        return results
 
     _parameter_descriptions = {
         "prompt": "The prompt to generate an image from.",
@@ -237,6 +181,7 @@ class AImage(Settings,
         "vae": vae_autocomplete,
     }
 
+
     @checks.bot_has_permissions(attach_files=True)
     @checks.bot_in_a_guild()
     @commands.command(name="txt2img")
@@ -251,6 +196,7 @@ class AImage(Settings,
         params = ImageGenParams(prompt=prompt)
         message_content=f"Result of {ctx.message.jump_url} requested by {ctx.author.mention}"
         await self.generate_image(ctx, params=params, message_content=message_content)
+
 
     @app_commands.command(name="txt2img")
     @app_commands.describe(resolution="The dimensions of the image.",
@@ -283,7 +229,7 @@ class AImage(Settings,
         await interaction.response.defer(thinking=True)
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        if not await self._can_run_command(ctx, "txt2img"):
+        if not await self.can_run_command(ctx, "txt2img"):
             return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
 
         width, height = tuple(int(x) for x in resolution.split("x"))
@@ -303,6 +249,7 @@ class AImage(Settings,
         )
 
         await self.generate_image(interaction, params=params)
+
 
     @app_commands.command(name="img2img")
     @app_commands.describe(image="The input image.",
@@ -334,7 +281,7 @@ class AImage(Settings,
         await interaction.response.defer(thinking=True)
 
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        if not await self._can_run_command(ctx, "txt2img"):
+        if not await self.can_run_command(ctx, "txt2img"):
             return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
 
         assert ctx.guild and image.content_type
@@ -369,6 +316,7 @@ class AImage(Settings,
 
         await self.generate_image(interaction, params=params)
 
+
     @commands.command(name="autotag")
     async def autotag_cmd(self, ctx: commands.Context):
         """
@@ -384,6 +332,7 @@ class AImage(Settings,
         
         async with ctx.typing():
             await self.autotag(ctx, image, DEFAULT_THRESHOLD, DEFAULT_TAGGER)
+
 
     @app_commands.command(name="autotag")
     @app_commands.describe(image="The image to generate tags for",
@@ -404,21 +353,23 @@ class AImage(Settings,
         Generate booru tags for an image.
         """
         ctx: commands.Context = await self.bot.get_context(interaction)  # noqa
-        if not await self._can_run_command(ctx, "autotag"):
+        if not await self.can_run_command(ctx, "autotag"):
             return await interaction.followup.send("You don't have permission to do this here.", ephemeral=True)
 
         assert ctx.guild and image.content_type
         if not image.content_type.startswith("image/"):
             return await interaction.followup.send("The file you uploaded is not a valid image.", ephemeral=True)
         
-        await interaction.response.defer(thinking=True)
-        await self.autotag(ctx, image, threshold, model)
+        return await interaction.followup.send("This feature is temporarily disabled.", ephemeral=True)
         
+        #await interaction.response.defer(thinking=True)
+        #await self.autotag(ctx, image, threshold, model)
+        
+
     async def autotag(self, ctx: commands.Context, attachment: discord.Attachment, threshold: float, model: str):
         image_bytes = await attachment.read()
-        api = await self.get_api_instance(ctx)
         try:
-            tags = await api.interrogate(image_bytes, model, threshold)
+            raise NotImplementedError
         except aiohttp.ClientResponseError as error:
             if error.status == 404:
                 await ctx.reply("For the tagger to work, the bot owner or administrator has to install the [wd tagger](https://github.com/Akegarasu/sd-webui-wd14-tagger) extension on the webui instance.")
@@ -434,15 +385,15 @@ class AImage(Settings,
             embed.description = ", ".join([f"`{clean_tag(tag)}`" for tag in tags])
             await ctx.reply(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
-    async def _contains_blacklisted_word(self, guild: discord.Guild, prompt: str):
-        blacklist_regex = await self.config.guild(guild).blacklist_regex()
+
+    async def contains_blacklisted_word(self, prompt: str):
+        blacklist_regex = await self.config.blacklist_regex()
         if blacklist_regex:
             return re.search(blacklist_regex, prompt, re.IGNORECASE)
-        else:
-            blacklist = await self.config.guild(guild).words_blacklist()
-            return any(word in prompt.lower() for word in blacklist)
+        return False
 
-    async def _can_run_command(self, ctx: commands.Context, command_name: str) -> bool:
+
+    async def can_run_command(self, ctx: commands.Context, command_name: str) -> bool:
         prefix = await self.bot.get_prefix(ctx.message)
         prefix = prefix[0] if isinstance(prefix, list) else prefix
         fake_message = copy(ctx.message)
@@ -455,16 +406,51 @@ class AImage(Settings,
             can = False
         return can
 
-    async def _update_autocomplete_cache(self, guild: discord.Guild):
-        api = await self.get_api_instance(guild=guild)
-        try:
-            log.debug(f"Ran a update to get possible autocomplete terms in server {guild.id}")
-            await api.update_autocomplete_cache(self.autocomplete_cache)
-        except NotImplementedError:
-            log.debug(f"Autocomplete terms is not supported by the api in server {guild.id}")
-            pass
 
-    async def get_api_instance(self, ctx: Union[None, commands.Context, discord.Interaction] = None, guild: Union[None, discord.Guild] = None):
-        instance = WebuiAPI(self, context=ctx, guild=guild)
-        await instance._init()
-        return instance
+    async def build_autocomplete_choices(self, current: str, choices: list) -> List[app_commands.Choice[str]]:
+        if not choices:
+            return []
+        choices = self.filter_list(choices, current)
+        return [app_commands.Choice(name=choice, value=choice) for choice in choices[:25]]
+
+    async def samplers_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        choices = self.autocomplete_cache.get("samplers", [])
+        return await self.build_autocomplete_choices(current, choices)
+
+    async def checkpoint_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        choices = self.autocomplete_cache.get("checkpoints", [])
+        return await self.build_autocomplete_choices(current, choices)
+
+    async def vae_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        choices = self.autocomplete_cache.get("vae", [])
+        return await self.build_autocomplete_choices(current, choices)
+    
+    async def loras_autocomplete(self, interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+        choices = self.autocomplete_cache.get("loras", [])
+        if not choices:
+            return []
+
+        weight = "1"
+        previous = ""
+        if current:
+            if m := re.search(r"^((?:<[^>]+>\s*)+)([^<>]+)$", current): # multiple loras
+                current = m.group(2)
+                previous = m.group(1) + " "
+            if m := re.search(r"^([^:]+):([+-]?\d*\.?\d+)$", current): # lora weight
+                current = m.group(1)
+                weight = m.group(2)
+
+        choices = self.filter_list(choices, current, True)
+        choices = [f"{previous}<lora:{choice}:{weight}>" if len(f"{previous}<lora:{choice}:{weight}>") <= 100 else f"<lora:{choice}:{weight}>" for choice in choices]
+        return [app_commands.Choice(name=choice, value=choice) for choice in choices][:25]
+
+    @staticmethod
+    def filter_list(options: list, current: str, strict: bool = False):
+        results = []
+        ratios = [(item, fuzz.partial_ratio(current.lower(), item.lower())) for item in options]
+        sorted_options = sorted(ratios, key=lambda x: x[1], reverse=True)
+        for item, ratio in sorted_options:
+            if strict and ratio < 75:
+                continue
+            results.append(item)
+        return results
